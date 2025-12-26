@@ -24,12 +24,16 @@ function parseServiceAccountKey(rawKey: string): Record<string, string> {
     key = key.replace(/\\/g, '');
   }
   
+  // Normalize whitespace - replace multiple spaces/newlines with single space
+  key = key.replace(/\s+/g, ' ');
+  
   console.log('Parsing key, first 50 chars:', key.substring(0, 50));
   
   try {
     return JSON.parse(key);
   } catch (e) {
     console.error('Failed to parse service account key. First 100 chars:', key.substring(0, 100));
+    console.error('Parse error:', e);
     throw new Error('Invalid service account key format. Please paste the raw JSON content from your service account file.');
   }
 }
