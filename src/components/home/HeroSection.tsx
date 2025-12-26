@@ -1,10 +1,8 @@
 import { ArrowRight, Truck, Shield, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-
 export function HeroSection() {
-  return (
-    <section className="relative overflow-hidden">
+  return <section className="relative overflow-hidden">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.1)_0%,transparent_50%)]" />
@@ -65,18 +63,18 @@ export function HeroSection() {
           </div>
 
           {/* Hero Image */}
-          <div className="relative animate-slide-up" style={{ animationDelay: '0.2s' }}>
+          <div className="relative animate-slide-up" style={{
+          animationDelay: '0.2s'
+        }}>
             <div className="relative aspect-square max-w-lg mx-auto">
               <div className="absolute inset-0 gradient-primary rounded-3xl rotate-6 opacity-20 blur-2xl" />
               <div className="absolute inset-4 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
-              <img
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=600&fit=crop"
-                alt="Shopping"
-                className="relative z-10 w-full h-full object-cover rounded-3xl shadow-xl"
-              />
+              <img src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=600&fit=crop" alt="Shopping" className="relative z-10 w-full h-full object-cover rounded-3xl shadow-xl" />
               
               {/* Floating Cards */}
-              <div className="absolute -left-4 top-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce" style={{ animationDuration: '3s' }}>
+              <div className="absolute -left-4 top-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce" style={{
+              animationDuration: '3s'
+            }}>
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">📦</span>
                   <div>
@@ -86,7 +84,9 @@ export function HeroSection() {
                 </div>
               </div>
               
-              <div className="absolute -right-4 bottom-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce" style={{ animationDuration: '3.5s' }}>
+              <div style={{
+              animationDuration: '3.5s'
+            }} className="absolute -right-4 bottom-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce opacity-100">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">⭐</span>
                   <div>
@@ -99,6 +99,5 @@ export function HeroSection() {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 }
