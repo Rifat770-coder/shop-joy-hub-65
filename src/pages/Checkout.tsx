@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, CheckCircle, ArrowLeft, Lock, Smartphone } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, ArrowLeft, Lock, Smartphone, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { CouponInput } from '@/components/cart/CouponInput';
 import { AppliedCoupon } from '@/hooks/useCoupons';
+import { ShippingOption, TaxSettings } from '@/hooks/useSettings';
 
 interface ShippingForm {
   fullName: string;
@@ -36,6 +37,12 @@ const Checkout = () => {
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   
+  // Shipping and Tax settings from database
+  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
+  const [taxSettings, setTaxSettings] = useState<TaxSettings | null>(null);
+  const [selectedShipping, setSelectedShipping] = useState<string>('');
+  const [loadingSettings, setLoadingSettings] = useState(true);
+
   const [shippingForm, setShippingForm] = useState<ShippingForm>({
     fullName: '',
     email: user?.email || '',
@@ -47,10 +54,47 @@ const Checkout = () => {
     country: 'United States',
   });
 
+  // Fetch shipping and tax settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('store_settings')
+          .select('*');
+
+        if (error) throw error;
+
+        if (data) {
+          data.forEach((setting) => {
+            if (setting.key === 'shipping') {
+              const options = setting.value as unknown as ShippingOption[];
+              const enabledOptions = options.filter(opt => opt.enabled);
+              setShippingOptions(enabledOptions);
+              if (enabledOptions.length > 0) {
+                setSelectedShipping(enabledOptions[0].id);
+              }
+            } else if (setting.key === 'tax') {
+              setTaxSettings(setting.value as unknown as TaxSettings);
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      } finally {
+        setLoadingSettings(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  const selectedShippingOption = shippingOptions.find(opt => opt.id === selectedShipping);
+  const shippingCost = selectedShippingOption?.price || 0;
   const discountAmount = appliedCoupon?.discountAmount || 0;
   const subtotalAfterDiscount = totalPrice - discountAmount;
-  const tax = subtotalAfterDiscount * 0.1;
-  const total = subtotalAfterDiscount + tax;
+  const taxRate = taxSettings?.enableTax ? (taxSettings.taxRate / 100) : 0;
+  const tax = subtotalAfterDiscount * taxRate;
+  const total = subtotalAfterDiscount + tax + shippingCost;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -367,6 +411,43 @@ const Checkout = () => {
                       </div>
                     </div>
 
+                    {/* Shipping Method Selection */}
+                    {loadingSettings ? (
+                      <div className="flex items-center justify-center py-6">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    ) : shippingOptions.length > 0 ? (
+                      <div className="mt-6">
+                        <Label className="text-base font-semibold mb-3 block">Shipping Method</Label>
+                        <RadioGroup value={selectedShipping} onValueChange={setSelectedShipping} className="space-y-3">
+                          {shippingOptions.map((option) => (
+                            <div
+                              key={option.id}
+                              className={`flex items-center space-x-3 p-4 border rounded-lg transition-colors cursor-pointer ${
+                                selectedShipping === option.id
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-border hover:border-primary/50'
+                              }`}
+                              onClick={() => setSelectedShipping(option.id)}
+                            >
+                              <RadioGroupItem value={option.id} id={`shipping-${option.id}`} />
+                              <Label htmlFor={`shipping-${option.id}`} className="flex-1 cursor-pointer">
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <p className="font-medium">{option.name}</p>
+                                    <p className="text-sm text-muted-foreground">{option.estimatedDays}</p>
+                                  </div>
+                                  <p className="font-semibold text-primary">
+                                    {option.price === 0 ? 'Free' : `$${option.price.toFixed(2)}`}
+                                  </p>
+                                </div>
+                              </Label>
+                            </div>
+                          ))}
+                        </RadioGroup>
+                      </div>
+                    ) : null}
+
                     <div className="flex justify-between mt-6">
                       <Link to="/cart">
                         <Button variant="ghost" className="gap-2">
@@ -540,12 +621,21 @@ const Checkout = () => {
                     )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping</span>
-                      <span className="text-success">Free</span>
+                      <span className={shippingCost === 0 ? 'text-success' : ''}>
+                        {shippingCost === 0 ? 'Free' : `$${shippingCost.toFixed(2)}`}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Tax (10%)</span>
-                      <span>${tax.toFixed(2)}</span>
-                    </div>
+                    {selectedShippingOption && (
+                      <p className="text-xs text-muted-foreground pl-2">
+                        {selectedShippingOption.name} - {selectedShippingOption.estimatedDays}
+                      </p>
+                    )}
+                    {taxSettings?.enableTax && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">{taxSettings.taxName} ({taxSettings.taxRate}%)</span>
+                        <span>${tax.toFixed(2)}</span>
+                      </div>
+                    )}
                   </div>
 
                   <Separator className="my-4" />
