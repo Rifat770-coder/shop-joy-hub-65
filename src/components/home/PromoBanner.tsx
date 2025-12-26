@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Clock, ArrowRight, Zap } from 'lucide-react';
+import { Clock, ArrowRight } from 'lucide-react';
 export function PromoBanner() {
   return <section className="py-12 md:py-16">
       <div className="container">
@@ -12,7 +12,7 @@ export function PromoBanner() {
           
           {/* Floating sparkles */}
           
-          <Zap className="absolute bottom-12 right-24 h-5 w-5 text-yellow-300/40 animate-pulse delay-150" />
+          
           
           <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="max-w-xl">
