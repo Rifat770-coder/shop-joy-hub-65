@@ -1,19 +1,19 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight, Sparkles } from 'lucide-react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight, Sparkles } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export function Footer() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
   const { toast } = useToast();
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email.trim()) {
       toast({
         title: "Email required",
@@ -34,10 +34,10 @@ export function Footer() {
     }
 
     setIsSubscribing(true);
-    
+
     try {
-      const { data, error } = await supabase.functions.invoke('subscribe-newsletter', {
-        body: { email }
+      const { data, error } = await supabase.functions.invoke("subscribe-newsletter", {
+        body: { email },
       });
 
       if (error) {
@@ -50,7 +50,7 @@ export function Footer() {
           title: "Already subscribed",
           description: "This email is already subscribed to our newsletter.",
         });
-        setEmail('');
+        setEmail("");
         return;
       }
 
@@ -58,10 +58,10 @@ export function Footer() {
         title: "Subscribed!",
         description: "Thanks for subscribing to our newsletter.",
       });
-      
-      setEmail('');
+
+      setEmail("");
     } catch (error: unknown) {
-      console.error('Subscription error:', error);
+      console.error("Subscription error:", error);
       toast({
         title: "Subscription failed",
         description: "Could not subscribe. Please try again later.",
@@ -76,14 +76,11 @@ export function Footer() {
       {/* Decorative Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,hsl(var(--primary)/0.08)_0%,transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(var(--primary)/0.05)_0%,transparent_50%)]" />
-      
+
       {/* Newsletter Section */}
       <div className="relative border-b border-border/50">
         <div className="container py-12">
           <div className="relative rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-8 md:p-12 backdrop-blur-sm border border-primary/10">
-            <div className="absolute top-4 right-4">
-              <Sparkles className="h-6 w-6 text-primary/40 animate-pulse" />
-            </div>
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
               <div className="text-center lg:text-left">
                 <h3 className="text-2xl md:text-3xl font-bold mb-2">
@@ -102,7 +99,7 @@ export function Footer() {
                   className="bg-background/80 border-border/50 backdrop-blur-sm min-w-[280px] h-12"
                 />
                 <Button type="submit" size="lg" className="gap-2 h-12 px-6" disabled={isSubscribing}>
-                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
+                  {isSubscribing ? "Subscribing..." : "Subscribe"}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
@@ -129,10 +126,10 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               {[
-                { icon: Facebook, label: 'Facebook' },
-                { icon: Twitter, label: 'Twitter' },
-                { icon: Instagram, label: 'Instagram' },
-                { icon: Youtube, label: 'Youtube' }
+                { icon: Facebook, label: "Facebook" },
+                { icon: Twitter, label: "Twitter" },
+                { icon: Instagram, label: "Instagram" },
+                { icon: Youtube, label: "Youtube" },
               ].map(({ icon: Icon, label }) => (
                 <a
                   key={label}
@@ -153,7 +150,7 @@ export function Footer() {
               Quick Links
             </h3>
             <ul className="space-y-3">
-              {['About Us', 'Contact Us', 'FAQs', 'Shipping Info', 'Returns Policy'].map((item) => (
+              {["About Us", "Contact Us", "FAQs", "Shipping Info", "Returns Policy"].map((item) => (
                 <li key={item}>
                   <a
                     href="#"
@@ -178,9 +175,7 @@ export function Footer() {
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
                   <MapPin className="h-5 w-5" />
                 </div>
-                <span className="text-muted-foreground pt-2">
-                  123 Commerce Street, Business District, NY 10001
-                </span>
+                <span className="text-muted-foreground pt-2">123 Commerce Street, Business District, NY 10001</span>
               </li>
               <li className="flex items-center gap-4 group">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
@@ -204,7 +199,7 @@ export function Footer() {
               Categories
             </h3>
             <ul className="space-y-3">
-              {['Electronics', 'Fashion', 'Home & Garden', 'Sports', 'Beauty'].map((item) => (
+              {["Electronics", "Fashion", "Home & Garden", "Sports", "Beauty"].map((item) => (
                 <li key={item}>
                   <a
                     href="#"
@@ -222,16 +217,10 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="mt-12 pt-8 border-t border-border/50">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">
-              © 2024 ShopHub. All rights reserved.
-            </p>
+            <p className="text-sm text-muted-foreground">© 2024 ShopHub. All rights reserved.</p>
             <div className="flex flex-wrap justify-center gap-6">
-              {['Privacy Policy', 'Terms of Service', 'Cookie Policy'].map((item) => (
-                <a
-                  key={item}
-                  href="#"
-                  className="text-sm text-muted-foreground hover:text-primary transition-colors"
-                >
+              {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
+                <a key={item} href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                   {item}
                 </a>
               ))}
