@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { create, getNumericDate } from "https://deno.land/x/djwt@v2.8/mod.ts";
+import { create } from "https://deno.land/x/djwt@v2.8/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,8 +8,38 @@ const corsHeaders = {
 
 const SPREADSHEET_ID = '1Ytg0ZQh6jAFuIrvGoarlHsapCu1wDzzi7N5Fb9E020GZjpOv-GKgFwII';
 
+function parseServiceAccountKey(rawKey: string): Record<string, string> {
+  let key = rawKey.trim();
+  
+  // Handle if the JSON was double-stringified or escaped
+  if (key.startsWith('"') && key.endsWith('"')) {
+    key = key.slice(1, -1);
+  }
+  
+  // Handle escaped newlines and quotes
+  key = key.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+  
+  // If it still starts with a backslash, try parsing as escaped JSON
+  if (key.startsWith('\\')) {
+    key = key.replace(/\\/g, '');
+  }
+  
+  console.log('Parsing key, first 50 chars:', key.substring(0, 50));
+  
+  try {
+    return JSON.parse(key);
+  } catch (e) {
+    console.error('Failed to parse service account key. First 100 chars:', key.substring(0, 100));
+    throw new Error('Invalid service account key format. Please paste the raw JSON content from your service account file.');
+  }
+}
+
 async function getAccessToken(serviceAccountKey: string): Promise<string> {
-  const credentials = JSON.parse(serviceAccountKey);
+  const credentials = parseServiceAccountKey(serviceAccountKey);
+  
+  if (!credentials.client_email || !credentials.private_key) {
+    throw new Error('Service account key missing client_email or private_key');
+  }
   
   const now = Math.floor(Date.now() / 1000);
   const payload = {
