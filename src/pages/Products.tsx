@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, Grid, List } from 'lucide-react';
+import { Filter, SlidersHorizontal } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
@@ -25,11 +25,14 @@ import {
 
 const Products = () => {
   const [searchParams] = useSearchParams();
+  const initialCategory = searchParams.get('category');
+  const initialSearch = searchParams.get('search') || '';
+  
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    searchParams.get('category') ? [searchParams.get('category')!] : []
+    initialCategory ? [initialCategory] : []
   );
   const [sortBy, setSortBy] = useState('featured');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
 
   const filteredProducts = useMemo(() => {
@@ -37,8 +40,12 @@ const Products = () => {
 
     // Filter by search
     if (searchQuery) {
-      filtered = filtered.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (p) =>
+          p.name.toLowerCase().includes(query) ||
+          p.description.toLowerCase().includes(query) ||
+          p.category.toLowerCase().includes(query)
       );
     }
 
@@ -137,6 +144,7 @@ const Products = () => {
         onClick={() => {
           setSelectedCategories([]);
           setPriceRange({ min: '', max: '' });
+          setSearchQuery('');
         }}
       >
         Clear Filters
@@ -152,7 +160,9 @@ const Products = () => {
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
             <div>
-              <h1 className="text-3xl font-bold">All Products</h1>
+              <h1 className="text-3xl font-bold">
+                {initialSearch ? `Search: "${initialSearch}"` : 'All Products'}
+              </h1>
               <p className="text-muted-foreground mt-1">
                 {filteredProducts.length} products found
               </p>

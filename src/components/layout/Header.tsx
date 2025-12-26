@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react';
+import { ShoppingCart, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
+import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
 import {
   Sheet,
   SheetContent,
@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/sheet';
 
 export function Header() {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { totalItems } = useCart();
   const { user } = useAuth();
@@ -56,18 +55,9 @@ export function Header() {
           ))}
         </nav>
 
-        {/* Search Bar */}
-        <div className="hidden flex-1 max-w-md lg:flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search products..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 pr-4 bg-secondary border-0 focus-visible:ring-primary"
-            />
-          </div>
+        {/* Search Bar with Autocomplete */}
+        <div className="hidden flex-1 max-w-md lg:block">
+          <SearchAutocomplete />
         </div>
 
         {/* Actions */}
@@ -122,14 +112,9 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <div className="flex flex-col gap-6 mt-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Search products..."
-                    className="pl-10 bg-secondary border-0"
-                  />
-                </div>
+                {/* Mobile Search */}
+                <SearchAutocomplete placeholder="Search..." />
+                
                 <nav className="flex flex-col gap-4">
                   {navLinks.map((link) => (
                     <Link
