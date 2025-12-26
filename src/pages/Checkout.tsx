@@ -244,11 +244,14 @@ const Checkout = () => {
                 Order ID: <span className="font-mono font-medium">{orderId?.slice(0, 8).toUpperCase()}</span>
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link to={`/orders/${orderId}`}>
+                  <Button variant="default">Track Order</Button>
+                </Link>
                 <Link to="/orders">
-                  <Button variant="default">View Orders</Button>
+                  <Button variant="outline">View All Orders</Button>
                 </Link>
                 <Link to="/products">
-                  <Button variant="outline">Continue Shopping</Button>
+                  <Button variant="ghost">Continue Shopping</Button>
                 </Link>
               </div>
             </div>

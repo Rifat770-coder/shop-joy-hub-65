@@ -243,6 +243,16 @@ const OrderHistory = () => {
                           ${Number(order.total).toFixed(2)}
                         </span>
                       </div>
+
+                      {/* Track Order Button */}
+                      <div className="mt-4 pt-4 border-t border-border">
+                        <Link to={`/orders/${order.id}`}>
+                          <Button className="w-full gap-2">
+                            <Truck className="h-4 w-4" />
+                            Track Order
+                          </Button>
+                        </Link>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 );
