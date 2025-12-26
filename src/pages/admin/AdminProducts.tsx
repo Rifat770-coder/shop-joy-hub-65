@@ -228,105 +228,105 @@ export default function AdminProducts() {
               </div>
             </DialogContent>
           </Dialog>
+        </div>
 
-          {/* Edit Product Dialog */}
-          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Edit Product</DialogTitle>
-              </DialogHeader>
-              {editingProduct && (
-                <div className="grid gap-4 py-4">
+        {/* Edit Product Dialog - moved outside header */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Edit Product</DialogTitle>
+            </DialogHeader>
+            {editingProduct && (
+              <div className="grid gap-4 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-name">Product Name *</Label>
+                  <Input
+                    id="edit-name"
+                    value={editingProduct.name}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, name: e.target.value })
+                    }
+                    placeholder="Enter product name"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-description">Description</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={editingProduct.description}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, description: e.target.value })
+                    }
+                    placeholder="Enter product description"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-name">Product Name *</Label>
+                    <Label htmlFor="edit-price">Price *</Label>
                     <Input
-                      id="edit-name"
-                      value={editingProduct.name}
+                      id="edit-price"
+                      type="number"
+                      value={editingProduct.price}
                       onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, name: e.target.value })
+                        setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })
                       }
-                      placeholder="Enter product name"
+                      placeholder="0.00"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-description">Description</Label>
-                    <Textarea
-                      id="edit-description"
-                      value={editingProduct.description}
-                      onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, description: e.target.value })
-                      }
-                      placeholder="Enter product description"
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-price">Price *</Label>
-                      <Input
-                        id="edit-price"
-                        type="number"
-                        value={editingProduct.price}
-                        onChange={(e) =>
-                          setEditingProduct({ ...editingProduct, price: parseFloat(e.target.value) || 0 })
-                        }
-                        placeholder="0.00"
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="edit-stock">Stock</Label>
-                      <Input
-                        id="edit-stock"
-                        type="number"
-                        value={editingProduct.stock}
-                        onChange={(e) =>
-                          setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) || 0 })
-                        }
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-category">Category *</Label>
-                    <Select
-                      value={editingProduct.category}
-                      onValueChange={(value) =>
-                        setEditingProduct({ ...editingProduct, category: value })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.name}>
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="edit-image">Image URL</Label>
+                    <Label htmlFor="edit-stock">Stock</Label>
                     <Input
-                      id="edit-image"
-                      value={editingProduct.image}
+                      id="edit-stock"
+                      type="number"
+                      value={editingProduct.stock}
                       onChange={(e) =>
-                        setEditingProduct({ ...editingProduct, image: e.target.value })
+                        setEditingProduct({ ...editingProduct, stock: parseInt(e.target.value) || 0 })
                       }
-                      placeholder="https://example.com/image.jpg"
+                      placeholder="0"
                     />
                   </div>
                 </div>
-              )}
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveEdit}>Save Changes</Button>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-category">Category *</Label>
+                  <Select
+                    value={editingProduct.category}
+                    onValueChange={(value) =>
+                      setEditingProduct({ ...editingProduct, category: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.name}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="edit-image">Image URL</Label>
+                  <Input
+                    id="edit-image"
+                    value={editingProduct.image}
+                    onChange={(e) =>
+                      setEditingProduct({ ...editingProduct, image: e.target.value })
+                    }
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveEdit}>Save Changes</Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Search */}
         <div className="relative max-w-sm">
