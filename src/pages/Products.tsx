@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal } from 'lucide-react';
+import { Filter, SlidersHorizontal, Star } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
@@ -15,6 +15,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import {
   Sheet,
   SheetContent,
@@ -34,6 +37,8 @@ const Products = () => {
   const [sortBy, setSortBy] = useState('featured');
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [minRating, setMinRating] = useState(0);
+  const [inStockOnly, setInStockOnly] = useState(false);
 
   const filteredProducts = useMemo(() => {
     let filtered = [...products];
@@ -62,6 +67,16 @@ const Products = () => {
       filtered = filtered.filter((p) => p.price <= parseFloat(priceRange.max));
     }
 
+    // Filter by rating
+    if (minRating > 0) {
+      filtered = filtered.filter((p) => p.rating >= minRating);
+    }
+
+    // Filter by availability
+    if (inStockOnly) {
+      filtered = filtered.filter((p) => p.stock > 0);
+    }
+
     // Sort
     switch (sortBy) {
       case 'price-low':
@@ -81,7 +96,7 @@ const Products = () => {
     }
 
     return filtered;
-  }, [searchQuery, selectedCategories, sortBy, priceRange]);
+  }, [searchQuery, selectedCategories, sortBy, priceRange, minRating, inStockOnly]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -90,6 +105,13 @@ const Products = () => {
         : [...prev, category]
     );
   };
+
+  const activeFiltersCount = [
+    selectedCategories.length > 0,
+    priceRange.min || priceRange.max,
+    minRating > 0,
+    inStockOnly,
+  ].filter(Boolean).length;
 
   const FilterSidebar = () => (
     <div className="space-y-6">
@@ -137,6 +159,57 @@ const Products = () => {
         </div>
       </div>
 
+      {/* Rating Filter */}
+      <div>
+        <h3 className="font-semibold mb-4">Minimum Rating</h3>
+        <div className="space-y-3">
+          <Slider
+            value={[minRating]}
+            onValueChange={([value]) => setMinRating(value)}
+            max={5}
+            step={0.5}
+            className="w-full"
+          />
+          <div className="flex items-center justify-between text-sm">
+            <div className="flex items-center gap-1">
+              {minRating > 0 ? (
+                <>
+                  <Star className="h-4 w-4 fill-warning text-warning" />
+                  <span>{minRating}+ stars</span>
+                </>
+              ) : (
+                <span className="text-muted-foreground">Any rating</span>
+              )}
+            </div>
+            {minRating > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => setMinRating(0)}
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Availability Filter */}
+      <div>
+        <h3 className="font-semibold mb-4">Availability</h3>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="in-stock" className="cursor-pointer">
+            In Stock Only
+          </Label>
+          <Switch
+            id="in-stock"
+            checked={inStockOnly}
+            onCheckedChange={setInStockOnly}
+          />
+        </div>
+      </div>
+
       {/* Clear Filters */}
       <Button
         variant="outline"
@@ -144,10 +217,15 @@ const Products = () => {
         onClick={() => {
           setSelectedCategories([]);
           setPriceRange({ min: '', max: '' });
+          setMinRating(0);
+          setInStockOnly(false);
           setSearchQuery('');
         }}
       >
-        Clear Filters
+        Clear All Filters
+        {activeFiltersCount > 0 && (
+          <span className="ml-1 text-xs">({activeFiltersCount})</span>
+        )}
       </Button>
     </div>
   );
