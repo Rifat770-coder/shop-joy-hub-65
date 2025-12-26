@@ -5,58 +5,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Products catalog - server-side source of truth for prices
-const products: Record<string, { name: string; price: number; image: string; category: string }> = {
-  "1": {
-    name: "Premium Wireless Headphones",
-    price: 199.99,
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-    category: "Electronics",
-  },
-  "2": {
-    name: "Smart Watch Pro",
-    price: 349.99,
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
-    category: "Electronics",
-  },
-  "3": {
-    name: "Designer Leather Handbag",
-    price: 159.99,
-    image: "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&h=400&fit=crop",
-    category: "Fashion",
-  },
-  "4": {
-    name: "Running Shoes Ultra",
-    price: 129.99,
-    image: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop",
-    category: "Sports",
-  },
-  "5": {
-    name: "Organic Skincare Set",
-    price: 89.99,
-    image: "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=400&h=400&fit=crop",
-    category: "Beauty",
-  },
-  "6": {
-    name: "Mechanical Keyboard RGB",
-    price: 149.99,
-    image: "https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=400&h=400&fit=crop",
-    category: "Electronics",
-  },
-  "7": {
-    name: "Cozy Throw Blanket",
-    price: 49.99,
-    image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop",
-    category: "Home & Garden",
-  },
-  "8": {
-    name: "Bestseller Novel Collection",
-    price: 39.99,
-    image: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop",
-    category: "Books",
-  },
-};
-
 interface OrderItem {
   productId: string;
   quantity: number;
@@ -132,6 +80,30 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Create admin client to fetch products (bypasses RLS for server-side validation)
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Fetch all requested products from database
+    const productIds = items.map(item => item.productId);
+    const { data: dbProducts, error: productsError } = await supabaseAdmin
+      .from("products")
+      .select("id, name, price, image, category, stock")
+      .in("id", productIds);
+
+    if (productsError) {
+      console.error("Error fetching products:", productsError);
+      return new Response(
+        JSON.stringify({ error: "Failed to validate products" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Create a map of products for quick lookup
+    const productMap = new Map(dbProducts?.map(p => [p.id, p]) || []);
+
     // Validate and calculate order items with server-side prices
     const validatedItems: Array<{
       product: { id: string; name: string; price: number; image: string; category: string };
@@ -157,8 +129,8 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      // Look up product in server-side catalog
-      const product = products[item.productId];
+      // Look up product in database
+      const product = productMap.get(item.productId);
       if (!product) {
         return new Response(
           JSON.stringify({ error: `Product not found: ${item.productId}` }),
@@ -166,19 +138,27 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      // Check stock availability
+      if (product.stock !== null && product.stock < quantity) {
+        return new Response(
+          JSON.stringify({ error: `Insufficient stock for ${product.name}. Available: ${product.stock}` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Add to validated items with server-verified price
       validatedItems.push({
         product: {
-          id: item.productId,
+          id: product.id,
           name: product.name,
-          price: product.price,
-          image: product.image,
+          price: Number(product.price),
+          image: product.image || "",
           category: product.category,
         },
         quantity,
       });
 
-      subtotal += product.price * quantity;
+      subtotal += Number(product.price) * quantity;
     }
 
     console.log("Validated items:", validatedItems.length, "Subtotal:", subtotal);
@@ -257,12 +237,7 @@ Deno.serve(async (req: Request) => {
 
     console.log("Final total:", total, "Tax:", tax, "Shipping:", shippingCost);
 
-    // Create order with service role to bypass RLS
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
+    // Create order using admin client (already created earlier)
     const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .insert({
