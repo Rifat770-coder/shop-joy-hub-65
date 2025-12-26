@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Star, 
   Heart, 
-  ShoppingCart, 
+  ShoppingCart,
+  Zap,
   Minus, 
   Plus, 
   Truck, 
@@ -38,6 +39,7 @@ const ProductDetail = () => {
   const { id } = useParams();
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -273,7 +275,7 @@ const ProductDetail = () => {
               {/* Actions */}
               <div className="flex gap-4">
                 <Button
-                  variant="hero"
+                  variant="secondary"
                   size="xl"
                   className="flex-1 gap-2"
                   onClick={() => addToCart(cartProduct as any, quantity)}
@@ -281,6 +283,19 @@ const ProductDetail = () => {
                 >
                   <ShoppingCart className="h-5 w-5" />
                   Add to Cart
+                </Button>
+                <Button
+                  variant="hero"
+                  size="xl"
+                  className="flex-1 gap-2"
+                  onClick={() => {
+                    addToCart(cartProduct as any, quantity);
+                    navigate('/checkout');
+                  }}
+                  disabled={product.stock === 0}
+                >
+                  <Zap className="h-5 w-5" />
+                  Buy Now
                 </Button>
                 <Button
                   variant="outline"
