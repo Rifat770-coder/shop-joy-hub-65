@@ -70,10 +70,11 @@ export function HeroSection() {
               <div className="absolute inset-0 gradient-primary rounded-3xl rotate-6 opacity-20 blur-2xl" />
               <div className="absolute inset-4 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
               <img 
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=512&h=512&fit=crop&fm=webp&q=80" 
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=600&fit=crop&fm=webp&q=80" 
                 alt="Shopping" 
                 className="relative z-10 w-full h-full object-cover rounded-3xl shadow-xl"
                 fetchPriority="high"
+                decoding="async"
               />
               
               {/* Floating Cards */}
