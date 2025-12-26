@@ -4,6 +4,7 @@ import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/context/CartContext';
+import { useFavorites } from '@/hooks/useFavorites';
 
 interface ProductCardProps {
   product: Product;
@@ -11,9 +12,12 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { toggleFavorite, isFavorite } = useFavorites();
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const favorite = isFavorite(product.id);
 
   return (
     <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/30 transition-all duration-300">
@@ -38,9 +42,14 @@ export function ProductCard({ product }: ProductCardProps) {
         <Button
           variant="secondary"
           size="icon"
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+          className={`absolute top-3 right-3 h-8 w-8 transition-all ${
+            favorite 
+              ? 'opacity-100 bg-destructive/10 hover:bg-destructive/20' 
+              : 'opacity-0 group-hover:opacity-100'
+          }`}
+          onClick={() => toggleFavorite(product.id)}
         >
-          <Heart className="h-4 w-4" />
+          <Heart className={`h-4 w-4 ${favorite ? 'fill-destructive text-destructive' : ''}`} />
         </Button>
 
         {/* Quick Add Button */}

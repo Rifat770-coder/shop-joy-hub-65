@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Search, ShoppingCart, User, Menu, X, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/context/AuthContext';
 import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
@@ -15,6 +16,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { totalItems } = useCart();
+  const { user } = useAuth();
   const location = useLocation();
 
   const navLinks = [
@@ -70,9 +72,13 @@ export function Header() {
 
         {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Heart className="h-5 w-5" />
-          </Button>
+          {user && (
+            <Link to="/profile">
+              <Button variant="ghost" size="icon" className="hidden sm:flex">
+                <Heart className="h-5 w-5" />
+              </Button>
+            </Link>
+          )}
           
           <Link to="/cart">
             <Button variant="ghost" size="icon" className="relative">
@@ -85,9 +91,24 @@ export function Header() {
             </Button>
           </Link>
 
+          {user ? (
+            <Link to="/profile" className="hidden sm:block">
+              <Button variant="outline" size="sm" className="gap-2">
+                <User className="h-4 w-4" />
+                Profile
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/auth" className="hidden sm:block">
+              <Button variant="default" size="sm" className="gap-2">
+                <User className="h-4 w-4" />
+                Sign In
+              </Button>
+            </Link>
+          )}
+
           <Link to="/admin" className="hidden sm:block">
-            <Button variant="outline" size="sm" className="gap-2">
-              <User className="h-4 w-4" />
+            <Button variant="ghost" size="sm">
               Admin
             </Button>
           </Link>
@@ -122,6 +143,23 @@ export function Header() {
                       {link.label}
                     </Link>
                   ))}
+                  {user ? (
+                    <Link
+                      to="/profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-base font-medium text-foreground hover:text-primary"
+                    >
+                      My Profile
+                    </Link>
+                  ) : (
+                    <Link
+                      to="/auth"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="text-base font-medium text-primary hover:text-primary"
+                    >
+                      Sign In
+                    </Link>
+                  )}
                   <Link
                     to="/admin"
                     onClick={() => setIsMobileMenuOpen(false)}
