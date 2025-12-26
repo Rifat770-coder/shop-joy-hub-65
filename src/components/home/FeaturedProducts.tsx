@@ -1,10 +1,27 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
-import { products } from '@/data/products';
+import { ArrowRight, Loader2 } from 'lucide-react';
+import { useFeaturedProducts } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/products/ProductCard';
 
 export function FeaturedProducts() {
-  const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
+  const { data: products = [], isLoading } = useFeaturedProducts();
+  const featuredProducts = products.slice(0, 4);
+
+  if (isLoading) {
+    return (
+      <section className="py-16">
+        <div className="container">
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (featuredProducts.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-16">
@@ -30,7 +47,7 @@ export function FeaturedProducts() {
               className="animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <ProductCard product={product} />
+              <ProductCard product={product as any} />
             </div>
           ))}
         </div>
