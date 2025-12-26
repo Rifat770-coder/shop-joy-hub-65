@@ -63,7 +63,7 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {user && (
-            <Link to="/profile">
+            <Link to="/wishlist">
               <Button variant="ghost" size="icon" className="hidden sm:flex">
                 <Heart className="h-5 w-5" />
               </Button>
@@ -129,13 +129,29 @@ export function Header() {
                     </Link>
                   ))}
                   {user ? (
-                    <Link
-                      to="/profile"
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="text-base font-medium text-foreground hover:text-primary"
-                    >
-                      My Profile
-                    </Link>
+                    <>
+                      <Link
+                        to="/wishlist"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-base font-medium text-foreground hover:text-primary"
+                      >
+                        My Wishlist
+                      </Link>
+                      <Link
+                        to="/orders"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-base font-medium text-foreground hover:text-primary"
+                      >
+                        Order History
+                      </Link>
+                      <Link
+                        to="/profile"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="text-base font-medium text-foreground hover:text-primary"
+                      >
+                        My Profile
+                      </Link>
+                    </>
                   ) : (
                     <Link
                       to="/auth"
