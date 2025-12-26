@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { CreditCard, Truck, CheckCircle, ArrowLeft, Lock } from 'lucide-react';
+import { CreditCard, Truck, CheckCircle, ArrowLeft, Lock, Smartphone } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -397,6 +397,34 @@ const Checkout = () => {
                         </div>
                       </div>
 
+                      {/* Mobile Banking - bKash */}
+                      <div className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
+                        <RadioGroupItem value="bkash" id="bkash" />
+                        <Label htmlFor="bkash" className="flex-1 cursor-pointer">
+                          <div className="font-medium">bKash</div>
+                          <div className="text-sm text-muted-foreground">
+                            Pay with your bKash mobile wallet
+                          </div>
+                        </Label>
+                        <div className="w-16 h-8 bg-[#E2136E] rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">bKash</span>
+                        </div>
+                      </div>
+
+                      {/* Mobile Banking - Nagad */}
+                      <div className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
+                        <RadioGroupItem value="nagad" id="nagad" />
+                        <Label htmlFor="nagad" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Nagad</div>
+                          <div className="text-sm text-muted-foreground">
+                            Pay with your Nagad mobile wallet
+                          </div>
+                        </Label>
+                        <div className="w-16 h-8 bg-[#F6921E] rounded flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">Nagad</span>
+                        </div>
+                      </div>
+
                       <div className="flex items-center space-x-3 p-4 border border-border rounded-lg hover:border-primary/50 transition-colors">
                         <RadioGroupItem value="cod" id="cod" />
                         <Label htmlFor="cod" className="flex-1 cursor-pointer">
@@ -413,6 +441,32 @@ const Checkout = () => {
                         <p className="text-sm text-muted-foreground text-center">
                           💳 Card payment integration coming soon. For now, your order will be placed as pending payment.
                         </p>
+                      </div>
+                    )}
+
+                    {(paymentMethod === 'bkash' || paymentMethod === 'nagad') && (
+                      <div className="mt-6 space-y-4">
+                        <div className={`p-4 rounded-lg ${paymentMethod === 'bkash' ? 'bg-[#E2136E]/10 border border-[#E2136E]/20' : 'bg-[#F6921E]/10 border border-[#F6921E]/20'}`}>
+                          <div className="flex items-center gap-3 mb-3">
+                            <Smartphone className={`h-5 w-5 ${paymentMethod === 'bkash' ? 'text-[#E2136E]' : 'text-[#F6921E]'}`} />
+                            <span className="font-medium">
+                              {paymentMethod === 'bkash' ? 'bKash Payment' : 'Nagad Payment'}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-4">
+                            After placing your order, you'll receive payment instructions via SMS/email with the merchant number and reference.
+                          </p>
+                          <div className="bg-background/50 rounded-lg p-3">
+                            <p className="text-sm font-medium mb-1">Payment Steps:</p>
+                            <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                              <li>Open your {paymentMethod === 'bkash' ? 'bKash' : 'Nagad'} app</li>
+                              <li>Select "Send Money" or "Payment"</li>
+                              <li>Enter the merchant number (sent to your email)</li>
+                              <li>Enter amount: ৳{(total * 110).toFixed(0)} (approx.)</li>
+                              <li>Use your Order ID as reference</li>
+                            </ol>
+                          </div>
+                        </div>
                       </div>
                     )}
 
