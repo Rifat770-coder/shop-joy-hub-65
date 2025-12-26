@@ -240,7 +240,7 @@ const Profile = () => {
                                   {order.shipping_address.split('\n')[0]}
                                 </span>
                               </div>
-                              <Link to={`/order-tracking?orderId=${order.id}`}>
+                              <Link to={`/orders/${order.id}`}>
                                 <Button variant="outline" size="sm" className="gap-2">
                                   <Truck className="h-4 w-4" />
                                   Track Order
