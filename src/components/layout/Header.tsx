@@ -63,15 +63,15 @@ export function Header() {
         {/* Actions */}
         <div className="flex items-center gap-2">
           {user && (
-            <Link to="/wishlist">
-              <Button variant="ghost" size="icon" className="hidden sm:flex">
+          <Link to="/wishlist" aria-label="View wishlist">
+              <Button variant="ghost" size="icon" className="hidden sm:flex" aria-label="Wishlist">
                 <Heart className="h-5 w-5" />
               </Button>
             </Link>
           )}
           
-          <Link to="/cart">
-            <Button variant="ghost" size="icon" className="relative">
+          <Link to="/cart" aria-label="View shopping cart">
+            <Button variant="ghost" size="icon" className="relative" aria-label={`Shopping cart with ${totalItems} items`}>
               <ShoppingCart className="h-5 w-5" />
               {totalItems > 0 && (
                 <Badge className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs gradient-primary border-0">
@@ -106,7 +106,7 @@ export function Header() {
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open menu">
                 <Menu className="h-5 w-5" />
               </Button>
             </SheetTrigger>

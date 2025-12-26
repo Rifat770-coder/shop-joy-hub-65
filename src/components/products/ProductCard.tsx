@@ -55,6 +55,7 @@ export function ProductCard({ product }: ProductCardProps) {
               : 'opacity-0 group-hover:opacity-100'
           }`}
           onClick={() => toggleFavorite(product.id)}
+          aria-label={favorite ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
         >
           <Heart className={`h-4 w-4 ${favorite ? 'fill-destructive text-destructive' : ''}`} />
         </Button>
