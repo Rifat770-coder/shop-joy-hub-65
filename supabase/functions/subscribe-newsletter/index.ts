@@ -163,8 +163,8 @@ serve(async (req) => {
     if (emailExists) {
       console.log('Email already subscribed:', email);
       return new Response(
-        JSON.stringify({ error: 'already_subscribed', message: 'This email is already subscribed to our newsletter.' }),
-        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, already_subscribed: true, message: 'This email is already subscribed to our newsletter.' }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
