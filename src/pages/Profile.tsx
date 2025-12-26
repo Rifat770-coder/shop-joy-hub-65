@@ -231,7 +231,7 @@ const Profile = () => {
                             </div>
                           </div>
                           
-                          {/* Order Tracking Section */}
+                          {/* Order Actions */}
                           <div className="pt-3 border-t border-border">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -246,50 +246,6 @@ const Profile = () => {
                                   Track Order
                                 </Button>
                               </Link>
-                            </div>
-                            
-                            {/* Progress indicator */}
-                            <div className="mt-3">
-                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                                <span>Order Progress</span>
-                                <span>
-                                  {order.status === 'pending' && '25%'}
-                                  {order.status === 'processing' && '50%'}
-                                  {order.status === 'shipped' && '75%'}
-                                  {order.status === 'delivered' && '100%'}
-                                  {order.status === 'cancelled' && 'Cancelled'}
-                                </span>
-                              </div>
-                              <div className="h-2 bg-muted rounded-full overflow-hidden">
-                                <div 
-                                  className={`h-full transition-all duration-300 ${
-                                    order.status === 'cancelled' 
-                                      ? 'bg-destructive' 
-                                      : 'bg-primary'
-                                  }`}
-                                  style={{
-                                    width: order.status === 'pending' ? '25%' 
-                                      : order.status === 'processing' ? '50%'
-                                      : order.status === 'shipped' ? '75%'
-                                      : order.status === 'delivered' ? '100%'
-                                      : '100%'
-                                  }}
-                                />
-                              </div>
-                              <div className="flex justify-between text-xs mt-1">
-                                <span className={order.status !== 'cancelled' ? 'text-primary font-medium' : 'text-muted-foreground'}>
-                                  Pending
-                                </span>
-                                <span className={['processing', 'shipped', 'delivered'].includes(order.status) ? 'text-primary font-medium' : 'text-muted-foreground'}>
-                                  Processing
-                                </span>
-                                <span className={['shipped', 'delivered'].includes(order.status) ? 'text-primary font-medium' : 'text-muted-foreground'}>
-                                  Shipped
-                                </span>
-                                <span className={order.status === 'delivered' ? 'text-primary font-medium' : 'text-muted-foreground'}>
-                                  Delivered
-                                </span>
-                              </div>
                             </div>
                           </div>
                         </div>
