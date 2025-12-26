@@ -36,7 +36,7 @@ export function SearchAutocomplete({ className, placeholder = "Search products..
     ).slice(0, 6);
 
     setResults(filtered);
-    setIsOpen(filtered.length > 0);
+    setIsOpen(true); // Always open dropdown when query is long enough
     setSelectedIndex(-1);
   }, [query]);
 
@@ -139,42 +139,50 @@ export function SearchAutocomplete({ className, placeholder = "Search products..
         >
           {/* Results List */}
           <div className="max-h-96 overflow-y-auto">
-            {results.map((product, index) => (
-              <button
-                key={product.id}
-                onClick={() => handleSelectProduct(product)}
-                className={`w-full flex items-center gap-4 p-3 text-left transition-colors ${
-                  index === selectedIndex
-                    ? 'bg-primary/10'
-                    : 'hover:bg-secondary'
-                }`}
-              >
-                {/* Product Image */}
-                <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary shrink-0">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
+            {results.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="font-medium">No matching found</p>
+                <p className="text-sm">Try a different search term</p>
+              </div>
+            ) : (
+              results.map((product, index) => (
+                <button
+                  key={product.id}
+                  onClick={() => handleSelectProduct(product)}
+                  className={`w-full flex items-center gap-4 p-3 text-left transition-colors ${
+                    index === selectedIndex
+                      ? 'bg-primary/10'
+                      : 'hover:bg-secondary'
+                  }`}
+                >
+                  {/* Product Image */}
+                  <div className="w-12 h-12 rounded-lg overflow-hidden bg-secondary shrink-0">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
 
-                {/* Product Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{product.name}</p>
-                  <p className="text-xs text-muted-foreground">{product.category}</p>
-                </div>
+                  {/* Product Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-muted-foreground">{product.category}</p>
+                  </div>
 
-                {/* Price */}
-                <div className="text-right shrink-0">
-                  <p className="font-semibold text-primary">${product.price.toFixed(2)}</p>
-                  {product.originalPrice && (
-                    <p className="text-xs text-muted-foreground line-through">
-                      ${product.originalPrice.toFixed(2)}
-                    </p>
-                  )}
-                </div>
-              </button>
-            ))}
+                  {/* Price */}
+                  <div className="text-right shrink-0">
+                    <p className="font-semibold text-primary">${product.price.toFixed(2)}</p>
+                    {product.originalPrice && (
+                      <p className="text-xs text-muted-foreground line-through">
+                        ${product.originalPrice.toFixed(2)}
+                      </p>
+                    )}
+                  </div>
+                </button>
+              ))
+            )}
           </div>
 
           {/* View All Results */}
