@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Package, Clock, CheckCircle, Truck, XCircle, AlertCircle, MapPin, ArrowLeft, RefreshCw } from 'lucide-react';
+import { Package, Clock, CheckCircle, Truck, XCircle, AlertCircle, MapPin, ArrowLeft, RefreshCw, Calendar } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { addDays, format } from 'date-fns';
 
 interface OrderItem {
   product: {
@@ -21,12 +22,20 @@ interface OrderItem {
   quantity: number;
 }
 
+interface ShippingMethod {
+  id: string;
+  name: string;
+  price: number;
+  estimatedDays: string;
+}
+
 interface Order {
   id: string;
   items: OrderItem[];
   total: number;
   status: string;
   shipping_address: string;
+  shipping_method: ShippingMethod | null;
   created_at: string;
   updated_at: string;
 }
@@ -103,6 +112,7 @@ const OrderTracking = () => {
           items: Array.isArray(data.items)
             ? (data.items as unknown as OrderItem[])
             : [],
+          shipping_method: data.shipping_method as unknown as ShippingMethod | null,
         };
 
         setOrder(parsedOrder);
@@ -160,6 +170,30 @@ const OrderTracking = () => {
     return statusSteps.indexOf(status);
   };
 
+  // Calculate estimated delivery date from shipping method
+  const getEstimatedDeliveryDate = () => {
+    if (!order?.shipping_method?.estimatedDays) return null;
+    
+    const orderDate = new Date(order.created_at);
+    const daysText = order.shipping_method.estimatedDays;
+    
+    // Parse "5-7 business days" or "1 business day" format
+    const match = daysText.match(/(\d+)(?:-(\d+))?/);
+    if (!match) return null;
+    
+    const minDays = parseInt(match[1], 10);
+    const maxDays = match[2] ? parseInt(match[2], 10) : minDays;
+    
+    const minDate = addDays(orderDate, minDays);
+    const maxDate = addDays(orderDate, maxDays);
+    
+    if (minDays === maxDays) {
+      return format(minDate, 'MMMM d, yyyy');
+    }
+    
+    return `${format(minDate, 'MMM d')} - ${format(maxDate, 'MMM d, yyyy')}`;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col">
@@ -207,6 +241,7 @@ const OrderTracking = () => {
 
   const currentStepIndex = getCurrentStepIndex(order.status);
   const isCancelled = order.status === 'cancelled';
+  const estimatedDelivery = getEstimatedDeliveryDate();
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -240,6 +275,24 @@ const OrderTracking = () => {
               <span className="text-sm text-muted-foreground">Live updates enabled</span>
             </div>
           </div>
+
+          {/* Estimated Delivery Banner */}
+          {estimatedDelivery && !isCancelled && order.status !== 'delivered' && (
+            <div className="bg-primary/10 border border-primary/20 rounded-xl p-4 mb-6 flex items-center gap-4">
+              <div className="p-3 bg-primary/20 rounded-full">
+                <Calendar className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <p className="font-semibold text-primary">Estimated Delivery</p>
+                <p className="text-sm text-muted-foreground">
+                  {estimatedDelivery}
+                  {order.shipping_method && (
+                    <span className="ml-2">• {order.shipping_method.name}</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Status Timeline */}
           <div className="bg-card border border-border rounded-xl p-6 mb-6">
@@ -359,6 +412,20 @@ const OrderTracking = () => {
                   <span className="text-muted-foreground">Order ID</span>
                   <span className="font-mono">{order.id.slice(0, 8).toUpperCase()}</span>
                 </div>
+                {order.shipping_method && (
+                  <>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Shipping Method</span>
+                      <span>{order.shipping_method.name}</span>
+                    </div>
+                    {order.shipping_method.price > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Shipping Cost</span>
+                        <span>${order.shipping_method.price.toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                )}
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Last Updated</span>
                   <span>

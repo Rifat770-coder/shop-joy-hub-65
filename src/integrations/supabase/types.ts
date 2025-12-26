@@ -89,6 +89,7 @@ export type Database = {
           id: string
           items: Json
           shipping_address: string
+          shipping_method: Json | null
           status: string
           total: number
           updated_at: string
@@ -99,6 +100,7 @@ export type Database = {
           id?: string
           items?: Json
           shipping_address: string
+          shipping_method?: Json | null
           status?: string
           total: number
           updated_at?: string
@@ -109,6 +111,7 @@ export type Database = {
           id?: string
           items?: Json
           shipping_address?: string
+          shipping_method?: Json | null
           status?: string
           total?: number
           updated_at?: string
