@@ -9,6 +9,7 @@ import {
   BarChart3,
   Menu,
   LogOut,
+  Boxes,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ interface AdminLayoutProps {
 const navItems = [
   { href: '/admin', icon: LayoutDashboard, label: 'Dashboard' },
   { href: '/admin/products', icon: Package, label: 'Products' },
+  { href: '/admin/inventory', icon: Boxes, label: 'Inventory' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
   { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
