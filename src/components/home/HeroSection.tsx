@@ -86,7 +86,7 @@ export function HeroSection() {
               
               <div style={{
               animationDuration: '3.5s'
-            }} className="absolute -right-4 bottom-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce opacity-100">
+            }} className="absolute right-4 bottom-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">⭐</span>
                   <div>
