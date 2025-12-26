@@ -62,10 +62,18 @@ interface OrderItem {
   quantity: number;
 }
 
+interface ShippingMethod {
+  id: string;
+  name: string;
+  price: number;
+  estimatedDays: string;
+}
+
 interface CreateOrderRequest {
   items: OrderItem[];
   shippingAddress: string;
   couponCode?: string;
+  shippingMethod?: ShippingMethod | null;
 }
 
 Deno.serve(async (req: Request) => {
@@ -106,7 +114,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const body: CreateOrderRequest = await req.json();
-    const { items, shippingAddress, couponCode } = body;
+    const { items, shippingAddress, couponCode, shippingMethod } = body;
 
     // Validate items array
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -244,9 +252,10 @@ Deno.serve(async (req: Request) => {
     // Calculate final totals
     const subtotalAfterDiscount = subtotal - discountAmount;
     const tax = subtotalAfterDiscount * 0.1; // 10% tax
-    const total = Math.round((subtotalAfterDiscount + tax) * 100) / 100;
+    const shippingCost = shippingMethod?.price || 0;
+    const total = Math.round((subtotalAfterDiscount + tax + shippingCost) * 100) / 100;
 
-    console.log("Final total:", total, "Tax:", tax);
+    console.log("Final total:", total, "Tax:", tax, "Shipping:", shippingCost);
 
     // Create order with service role to bypass RLS
     const supabaseAdmin = createClient(
@@ -262,6 +271,7 @@ Deno.serve(async (req: Request) => {
         total,
         status: "pending",
         shipping_address: shippingAddress.trim(),
+        shipping_method: shippingMethod || null,
       })
       .select("id")
       .single();

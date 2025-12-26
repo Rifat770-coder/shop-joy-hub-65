@@ -150,6 +150,12 @@ const Checkout = () => {
           items: orderItems,
           shippingAddress: shippingAddress,
           couponCode: appliedCoupon?.coupon?.code || undefined,
+          shippingMethod: selectedShippingOption ? {
+            id: selectedShippingOption.id,
+            name: selectedShippingOption.name,
+            price: selectedShippingOption.price,
+            estimatedDays: selectedShippingOption.estimatedDays,
+          } : null,
         },
       });
 
