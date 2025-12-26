@@ -26,6 +26,9 @@ interface OrderConfirmationRequest {
   subtotal: number;
   discount?: number;
   tax: number;
+  taxName?: string;
+  shippingCost?: number;
+  shippingMethodName?: string;
   total: number;
   shippingAddress: string;
 }
@@ -45,6 +48,9 @@ const handler = async (req: Request): Promise<Response> => {
       subtotal,
       discount = 0,
       tax,
+      taxName = 'Tax',
+      shippingCost = 0,
+      shippingMethodName = 'Standard',
       total,
       shippingAddress,
     }: OrderConfirmationRequest = await req.json();
@@ -128,11 +134,11 @@ const handler = async (req: Request): Promise<Response> => {
                   </tr>
                   ${discountHtml}
                   <tr>
-                    <td style="padding: 8px 0; color: #6b7280;">Shipping</td>
-                    <td style="padding: 8px 0; text-align: right; color: #059669;">Free</td>
+                    <td style="padding: 8px 0; color: #6b7280;">Shipping (${shippingMethodName})</td>
+                    <td style="padding: 8px 0; text-align: right;${shippingCost === 0 ? ' color: #059669;' : ''}">${shippingCost === 0 ? 'Free' : '$' + shippingCost.toFixed(2)}</td>
                   </tr>
                   <tr>
-                    <td style="padding: 8px 0; color: #6b7280;">Tax</td>
+                    <td style="padding: 8px 0; color: #6b7280;">${taxName}</td>
                     <td style="padding: 8px 0; text-align: right;">$${tax.toFixed(2)}</td>
                   </tr>
                   <tr style="border-top: 2px solid #e5e7eb;">
