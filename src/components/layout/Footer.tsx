@@ -40,11 +40,22 @@ export function Footer() {
         body: { email }
       });
 
+      // Handle error responses (including 409 for already subscribed)
       if (error) {
+        // Try to parse error message for already_subscribed case
+        const errorMessage = error.message || '';
+        if (errorMessage.includes('already_subscribed') || (data?.error === 'already_subscribed')) {
+          toast({
+            title: "Already subscribed",
+            description: "This email is already subscribed to our newsletter.",
+          });
+          setEmail('');
+          return;
+        }
         throw error;
       }
 
-      // Check if the response indicates already subscribed
+      // Check if the response data indicates already subscribed
       if (data?.error === 'already_subscribed') {
         toast({
           title: "Already subscribed",
@@ -63,22 +74,15 @@ export function Footer() {
     } catch (error: unknown) {
       console.error('Subscription error:', error);
       
-      // Handle the case where the error contains the already_subscribed response
-      const errorObj = error as { context?: { responseBody?: string } };
-      if (errorObj?.context?.responseBody) {
-        try {
-          const responseData = JSON.parse(errorObj.context.responseBody);
-          if (responseData?.error === 'already_subscribed') {
-            toast({
-              title: "Already subscribed",
-              description: "This email is already subscribed to our newsletter.",
-            });
-            setEmail('');
-            return;
-          }
-        } catch {
-          // Parsing failed, continue to generic error
-        }
+      // Final check for already_subscribed in any error format
+      const errorString = String(error);
+      if (errorString.includes('already_subscribed')) {
+        toast({
+          title: "Already subscribed",
+          description: "This email is already subscribed to our newsletter.",
+        });
+        setEmail('');
+        return;
       }
       
       toast({
