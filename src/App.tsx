@@ -17,6 +17,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminCustomers from "./pages/admin/AdminCustomers";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import OrderHistory from "./pages/OrderHistory";
 import Wishlist from "./pages/Wishlist";
 import Checkout from "./pages/Checkout";
@@ -48,7 +49,7 @@ const App = () => (
               <Route path="/admin/products" element={<AdminProducts />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
               <Route path="/admin/customers" element={<AdminCustomers />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
