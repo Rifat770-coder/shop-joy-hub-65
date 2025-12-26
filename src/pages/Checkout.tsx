@@ -118,13 +118,34 @@ const Checkout = () => {
 
       if (error) throw error;
 
+      // Send order confirmation email
+      try {
+        await supabase.functions.invoke('send-order-confirmation', {
+          body: {
+            orderId: data.id,
+            customerEmail: shippingForm.email,
+            customerName: shippingForm.fullName,
+            items: orderItems,
+            subtotal: totalPrice,
+            discount: discountAmount,
+            tax: tax,
+            total: total,
+            shippingAddress: shippingAddress,
+          },
+        });
+        console.log('Order confirmation email sent');
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // Don't fail the order if email fails
+      }
+
       setOrderId(data.id);
       setStep('confirmation');
       clearCart();
 
       toast({
         title: 'Order placed successfully!',
-        description: 'Thank you for your purchase.',
+        description: 'A confirmation email has been sent to your inbox.',
       });
     } catch (error: any) {
       console.error('Error placing order:', error);
