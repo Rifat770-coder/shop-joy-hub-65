@@ -191,27 +191,6 @@ export function Footer() {
               </li>
             </ul>
           </div>
-
-          {/* Categories */}
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <span className="w-8 h-0.5 bg-primary rounded-full" />
-              Categories
-            </h3>
-            <ul className="space-y-3">
-              {["Electronics", "Fashion", "Home & Garden", "Sports", "Beauty"].map((item) => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
-                  >
-                    <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    {item}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
         </div>
 
         {/* Bottom Bar */}
