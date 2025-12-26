@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Edit, Trash2, MoreHorizontal } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,12 +34,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { products as initialProducts, categories } from '@/data/products';
-import { Product } from '@/types';
-import { toast } from '@/hooks/use-toast';
+import { categories } from '@/data/products';
+import { 
+  useProducts, 
+  useAddProduct, 
+  useUpdateProduct, 
+  useDeleteProduct,
+  Product 
+} from '@/hooks/useProducts';
 
 export default function AdminProducts() {
-  const [products, setProducts] = useState(initialProducts);
+  const { data: products = [], isLoading } = useProducts();
+  const addProduct = useAddProduct();
+  const updateProduct = useUpdateProduct();
+  const deleteProduct = useDeleteProduct();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -57,36 +66,22 @@ export default function AdminProducts() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleAddProduct = () => {
+  const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.category) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all required fields.',
-        variant: 'destructive',
-      });
       return;
     }
 
-    const product: Product = {
-      id: (products.length + 1).toString(),
+    await addProduct.mutateAsync({
       name: newProduct.name,
-      description: newProduct.description,
+      description: newProduct.description || undefined,
       price: parseFloat(newProduct.price),
       category: newProduct.category,
       stock: parseInt(newProduct.stock) || 0,
       image: newProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
-      rating: 0,
-      reviews: 0,
-      createdAt: new Date().toISOString().split('T')[0],
-    };
+    });
 
-    setProducts([...products, product]);
     setNewProduct({ name: '', description: '', price: '', category: '', stock: '', image: '' });
     setIsAddDialogOpen(false);
-    toast({
-      title: 'Product added',
-      description: `${product.name} has been added successfully.`,
-    });
   };
 
   const handleEditProduct = (product: Product) => {
@@ -94,27 +89,36 @@ export default function AdminProducts() {
     setIsEditDialogOpen(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (!editingProduct) return;
     
-    setProducts(products.map((p) => 
-      p.id === editingProduct.id ? editingProduct : p
-    ));
+    await updateProduct.mutateAsync({
+      id: editingProduct.id,
+      name: editingProduct.name,
+      description: editingProduct.description,
+      price: editingProduct.price,
+      category: editingProduct.category,
+      stock: editingProduct.stock,
+      image: editingProduct.image,
+    });
+
     setIsEditDialogOpen(false);
     setEditingProduct(null);
-    toast({
-      title: 'Product updated',
-      description: 'Product has been updated successfully.',
-    });
   };
 
-  const handleDeleteProduct = (productId: string) => {
-    setProducts(products.filter((p) => p.id !== productId));
-    toast({
-      title: 'Product deleted',
-      description: 'Product has been deleted successfully.',
-    });
+  const handleDeleteProduct = async (productId: string) => {
+    await deleteProduct.mutateAsync(productId);
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -224,13 +228,16 @@ export default function AdminProducts() {
                 <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleAddProduct}>Add Product</Button>
+                <Button onClick={handleAddProduct} disabled={addProduct.isPending}>
+                  {addProduct.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  Add Product
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
 
-        {/* Edit Product Dialog - moved outside header */}
+        {/* Edit Product Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-lg">
             <DialogHeader>
@@ -253,7 +260,7 @@ export default function AdminProducts() {
                   <Label htmlFor="edit-description">Description</Label>
                   <Textarea
                     id="edit-description"
-                    value={editingProduct.description}
+                    value={editingProduct.description || ''}
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, description: e.target.value })
                     }
@@ -310,7 +317,7 @@ export default function AdminProducts() {
                   <Label htmlFor="edit-image">Image URL</Label>
                   <Input
                     id="edit-image"
-                    value={editingProduct.image}
+                    value={editingProduct.image || ''}
                     onChange={(e) =>
                       setEditingProduct({ ...editingProduct, image: e.target.value })
                     }
@@ -323,7 +330,10 @@ export default function AdminProducts() {
               <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveEdit}>Save Changes</Button>
+              <Button onClick={handleSaveEdit} disabled={updateProduct.isPending}>
+                {updateProduct.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -359,7 +369,7 @@ export default function AdminProducts() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img
-                        src={product.image}
+                        src={product.image || '/placeholder.svg'}
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
@@ -375,7 +385,7 @@ export default function AdminProducts() {
                     <Badge variant="secondary">{product.category}</Badge>
                   </TableCell>
                   <TableCell className="font-medium">
-                    ${product.price.toFixed(2)}
+                    ${Number(product.price).toFixed(2)}
                   </TableCell>
                   <TableCell>
                     <span
@@ -389,7 +399,7 @@ export default function AdminProducts() {
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <span className="text-warning">★</span>
-                      <span>{product.rating}</span>
+                      <span>{Number(product.rating).toFixed(1)}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">

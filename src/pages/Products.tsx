@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, Star } from 'lucide-react';
+import { Filter, SlidersHorizontal, Star, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
-import { products, categories } from '@/data/products';
+import { categories } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,6 +32,8 @@ const Products = () => {
   const initialCategory = searchParams.get('category');
   const initialSearch = searchParams.get('search') || '';
   
+  const { data: products = [], isLoading } = useProducts();
+  
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialCategory ? [initialCategory] : []
   );
@@ -49,7 +52,7 @@ const Products = () => {
       filtered = filtered.filter(
         (p) =>
           p.name.toLowerCase().includes(query) ||
-          p.description.toLowerCase().includes(query) ||
+          (p.description && p.description.toLowerCase().includes(query)) ||
           p.category.toLowerCase().includes(query)
       );
     }
@@ -61,15 +64,15 @@ const Products = () => {
 
     // Filter by price
     if (priceRange.min) {
-      filtered = filtered.filter((p) => p.price >= parseFloat(priceRange.min));
+      filtered = filtered.filter((p) => Number(p.price) >= parseFloat(priceRange.min));
     }
     if (priceRange.max) {
-      filtered = filtered.filter((p) => p.price <= parseFloat(priceRange.max));
+      filtered = filtered.filter((p) => Number(p.price) <= parseFloat(priceRange.max));
     }
 
     // Filter by rating
     if (minRating > 0) {
-      filtered = filtered.filter((p) => p.rating >= minRating);
+      filtered = filtered.filter((p) => Number(p.rating) >= minRating);
     }
 
     // Filter by availability
@@ -80,23 +83,23 @@ const Products = () => {
     // Sort
     switch (sortBy) {
       case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
+        filtered.sort((a, b) => Number(a.price) - Number(b.price));
         break;
       case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
+        filtered.sort((a, b) => Number(b.price) - Number(a.price));
         break;
       case 'rating':
-        filtered.sort((a, b) => b.rating - a.rating);
+        filtered.sort((a, b) => Number(b.rating) - Number(a.rating));
         break;
       case 'newest':
-        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
         break;
       default:
         filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
     }
 
     return filtered;
-  }, [searchQuery, selectedCategories, sortBy, priceRange, minRating, inStockOnly]);
+  }, [products, searchQuery, selectedCategories, sortBy, priceRange, minRating, inStockOnly]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -230,6 +233,18 @@ const Products = () => {
     </div>
   );
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -311,7 +326,7 @@ const Products = () => {
                       className="animate-fade-in"
                       style={{ animationDelay: `${index * 0.05}s` }}
                     >
-                      <ProductCard product={product} />
+                      <ProductCard product={product as any} />
                     </div>
                   ))}
                 </div>

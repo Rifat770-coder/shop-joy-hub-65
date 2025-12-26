@@ -11,6 +11,7 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
+  Loader2,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -20,16 +21,14 @@ import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ReviewList } from '@/components/reviews/ReviewList';
-import { products } from '@/data/products';
+import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
 
 // Mock gallery images
-
-// Mock gallery images
-const getGalleryImages = (mainImage: string) => [
-  mainImage,
+const getGalleryImages = (mainImage: string | null) => [
+  mainImage || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop',
   'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop',
   'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop',
   'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&h=600&fit=crop',
@@ -42,7 +41,8 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  const product = products.find((p) => p.id === id);
+  const { data: product, isLoading } = useProduct(id || '');
+  const { data: allProducts = [] } = useProducts();
   
   const {
     reviews,
@@ -54,6 +54,18 @@ const ProductDetail = () => {
     updateReview,
     deleteReview,
   } = useReviews(id || '');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -73,11 +85,9 @@ const ProductDetail = () => {
   }
 
   const galleryImages = getGalleryImages(product.image);
-  const discount = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : 0;
+  const discount = 0; // No originalPrice in DB schema
 
-  const relatedProducts = products
+  const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
@@ -104,6 +114,19 @@ const ProductDetail = () => {
         }`}
       />
     ));
+  };
+
+  // Convert DB product to cart-compatible format
+  const cartProduct = {
+    id: product.id,
+    name: product.name,
+    description: product.description || '',
+    price: Number(product.price),
+    image: product.image || '/placeholder.svg',
+    category: product.category,
+    rating: Number(product.rating),
+    reviews: product.reviews,
+    stock: product.stock,
   };
 
   return (
@@ -190,9 +213,9 @@ const ProductDetail = () => {
                 {/* Rating */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1">
-                    {renderStars(Math.round(product.rating))}
+                    {renderStars(Math.round(Number(product.rating)))}
                   </div>
-                  <span className="font-medium">{product.rating}</span>
+                  <span className="font-medium">{Number(product.rating).toFixed(1)}</span>
                   <span className="text-muted-foreground">
                     ({product.reviews.toLocaleString()} reviews)
                   </span>
@@ -202,13 +225,8 @@ const ProductDetail = () => {
               {/* Price */}
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-bold text-primary">
-                  ${product.price.toFixed(2)}
+                  ${Number(product.price).toFixed(2)}
                 </span>
-                {product.originalPrice && (
-                  <span className="text-xl text-muted-foreground line-through">
-                    ${product.originalPrice.toFixed(2)}
-                  </span>
-                )}
               </div>
 
               <Separator />
@@ -258,7 +276,7 @@ const ProductDetail = () => {
                   variant="hero"
                   size="xl"
                   className="flex-1 gap-2"
-                  onClick={() => addToCart(product, quantity)}
+                  onClick={() => addToCart(cartProduct as any, quantity)}
                   disabled={product.stock === 0}
                 >
                   <ShoppingCart className="h-5 w-5" />
@@ -380,7 +398,7 @@ const ProductDetail = () => {
               <h2 className="text-2xl font-bold mb-6">Related Products</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {relatedProducts.map((relatedProduct) => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct} />
+                  <ProductCard key={relatedProduct.id} product={relatedProduct as any} />
                 ))}
               </div>
             </section>

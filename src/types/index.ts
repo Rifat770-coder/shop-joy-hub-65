@@ -1,16 +1,19 @@
 export interface Product {
   id: string;
   name: string;
-  description: string;
+  description: string | null;
   price: number;
   originalPrice?: number;
-  image: string;
+  image: string | null;
   category: string;
   rating: number;
   reviews: number;
   stock: number;
   featured?: boolean;
-  createdAt: string;
+  created_at?: string;
+  updated_at?: string;
+  // Legacy field for compatibility
+  createdAt?: string;
 }
 
 export interface Category {
