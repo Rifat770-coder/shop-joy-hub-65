@@ -4,6 +4,7 @@ import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight,
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export function Footer() {
   const [email, setEmail] = useState('');
@@ -34,16 +35,31 @@ export function Footer() {
 
     setIsSubscribing(true);
     
-    // Simulate subscription delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast({
-      title: "Subscribed!",
-      description: "Thanks for subscribing to our newsletter.",
-    });
-    
-    setEmail('');
-    setIsSubscribing(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('subscribe-newsletter', {
+        body: { email }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Subscribed!",
+        description: "Thanks for subscribing to our newsletter.",
+      });
+      
+      setEmail('');
+    } catch (error) {
+      console.error('Subscription error:', error);
+      toast({
+        title: "Subscription failed",
+        description: "Could not subscribe. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubscribing(false);
+    }
   };
   return (
     <footer className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-secondary/50">
