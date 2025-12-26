@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Package, Heart, Settings, LogOut, Save, Camera, Truck, MapPin, Eye, History } from 'lucide-react';
+import { User, Package, Heart, Settings, LogOut, Save, Camera, Truck, MapPin, Eye } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -174,8 +174,8 @@ const Profile = () => {
           <Tabs defaultValue="orders" className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 max-w-md">
               <TabsTrigger value="orders" className="gap-2">
-                <History className="h-4 w-4" />
-                Order History
+                <Package className="h-4 w-4" />
+                Orders
               </TabsTrigger>
               <TabsTrigger value="favorites" className="gap-2">
                 <Heart className="h-4 w-4" />
@@ -187,11 +187,11 @@ const Profile = () => {
               </TabsTrigger>
             </TabsList>
 
-            {/* Order History Tab */}
+            {/* Orders Tab */}
             <TabsContent value="orders">
               <Card>
                 <CardHeader>
-                  <CardTitle>Order History</CardTitle>
+                  <CardTitle>Your Orders</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {ordersLoading ? (
