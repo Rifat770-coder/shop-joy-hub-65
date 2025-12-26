@@ -44,14 +44,43 @@ export function Footer() {
         throw error;
       }
 
+      // Check if the response indicates already subscribed
+      if (data?.error === 'already_subscribed') {
+        toast({
+          title: "Already subscribed",
+          description: "This email is already subscribed to our newsletter.",
+        });
+        setEmail('');
+        return;
+      }
+
       toast({
         title: "Subscribed!",
         description: "Thanks for subscribing to our newsletter.",
       });
       
       setEmail('');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Subscription error:', error);
+      
+      // Handle the case where the error contains the already_subscribed response
+      const errorObj = error as { context?: { responseBody?: string } };
+      if (errorObj?.context?.responseBody) {
+        try {
+          const responseData = JSON.parse(errorObj.context.responseBody);
+          if (responseData?.error === 'already_subscribed') {
+            toast({
+              title: "Already subscribed",
+              description: "This email is already subscribed to our newsletter.",
+            });
+            setEmail('');
+            return;
+          }
+        } catch {
+          // Parsing failed, continue to generic error
+        }
+      }
+      
       toast({
         title: "Subscription failed",
         description: "Could not subscribe. Please try again later.",

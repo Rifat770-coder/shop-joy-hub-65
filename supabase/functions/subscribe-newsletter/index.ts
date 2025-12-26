@@ -98,6 +98,38 @@ async function getAccessToken(serviceAccountKey: string): Promise<string> {
   return tokenData.access_token;
 }
 
+async function checkEmailExists(accessToken: string, email: string): Promise<boolean> {
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/A:A`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    const errorData = await response.text();
+    console.error('Google Sheets API error when checking emails:', errorData);
+    throw new Error('Failed to check existing emails');
+  }
+
+  const data = await response.json();
+  const values = data.values || [];
+  
+  // Normalize the input email for comparison (lowercase, trimmed)
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // Check if any existing email matches (case-insensitive)
+  for (const row of values) {
+    if (row[0] && row[0].toLowerCase().trim() === normalizedEmail) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -124,6 +156,17 @@ serve(async (req) => {
 
     // Get access token using service account
     const accessToken = await getAccessToken(serviceAccountKey);
+
+    // Check if email already exists in the spreadsheet
+    const emailExists = await checkEmailExists(accessToken, email);
+    
+    if (emailExists) {
+      console.log('Email already subscribed:', email);
+      return new Response(
+        JSON.stringify({ error: 'already_subscribed', message: 'This email is already subscribed to our newsletter.' }),
+        { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Append email to Google Sheets
     const timestamp = new Date().toISOString();
