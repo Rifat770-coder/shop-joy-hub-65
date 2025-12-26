@@ -166,6 +166,7 @@ const Checkout = () => {
       }
 
       // Send order confirmation email
+      let emailSentSuccessfully = true;
       try {
         const orderItemsForEmail = items.map((item) => ({
           product: {
@@ -177,7 +178,7 @@ const Checkout = () => {
           quantity: item.quantity,
         }));
 
-        await supabase.functions.invoke('send-order-confirmation', {
+        const emailResult = await supabase.functions.invoke('send-order-confirmation', {
           body: {
             orderId: data.orderId,
             customerEmail: shippingForm.email,
@@ -193,18 +194,31 @@ const Checkout = () => {
             shippingAddress: shippingAddress,
           },
         });
+        
+        if (emailResult.error) {
+          console.warn('Email sending failed:', emailResult.error);
+          emailSentSuccessfully = false;
+        }
       } catch (emailError) {
-        // Don't fail the order if email fails
+        console.warn('Email sending failed:', emailError);
+        emailSentSuccessfully = false;
       }
 
       setOrderId(data.orderId);
       setStep('confirmation');
       clearCart();
 
-      toast({
-        title: 'Order placed successfully!',
-        description: 'A confirmation email has been sent to your inbox.',
-      });
+      if (emailSentSuccessfully) {
+        toast({
+          title: 'Order placed successfully!',
+          description: 'A confirmation email has been sent to your inbox.',
+        });
+      } else {
+        toast({
+          title: 'Order placed successfully!',
+          description: 'Your order is confirmed. We could not send a confirmation email, but you can view your order in Order History.',
+        });
+      }
     } catch (error: any) {
       toast({
         title: 'Error',
