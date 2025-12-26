@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, Package, Heart, Settings, LogOut, Save, Camera } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { User, Package, Heart, Settings, LogOut, Save, Camera, Truck, MapPin, Eye } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -213,20 +213,84 @@ const Profile = () => {
                       {orders.map((order) => (
                         <div
                           key={order.id}
-                          className="flex items-center justify-between p-4 border border-border rounded-lg"
+                          className="p-4 border border-border rounded-lg space-y-3"
                         >
-                          <div>
-                            <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(order.created_at).toLocaleDateString()} •{' '}
-                              {order.items.length} items
-                            </p>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(order.created_at).toLocaleDateString()} •{' '}
+                                {order.items.length} items
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold">${order.total.toFixed(2)}</p>
+                              <Badge className={`${getStatusColor(order.status)} border`}>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              </Badge>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-bold">${order.total.toFixed(2)}</p>
-                            <Badge className={`${getStatusColor(order.status)} border`}>
-                              {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                            </Badge>
+                          
+                          {/* Order Tracking Section */}
+                          <div className="pt-3 border-t border-border">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <MapPin className="h-4 w-4" />
+                                <span className="truncate max-w-[200px]">
+                                  {order.shipping_address.split('\n')[0]}
+                                </span>
+                              </div>
+                              <Link to={`/order-tracking?orderId=${order.id}`}>
+                                <Button variant="outline" size="sm" className="gap-2">
+                                  <Truck className="h-4 w-4" />
+                                  Track Order
+                                </Button>
+                              </Link>
+                            </div>
+                            
+                            {/* Progress indicator */}
+                            <div className="mt-3">
+                              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>Order Progress</span>
+                                <span>
+                                  {order.status === 'pending' && '25%'}
+                                  {order.status === 'processing' && '50%'}
+                                  {order.status === 'shipped' && '75%'}
+                                  {order.status === 'delivered' && '100%'}
+                                  {order.status === 'cancelled' && 'Cancelled'}
+                                </span>
+                              </div>
+                              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full transition-all duration-300 ${
+                                    order.status === 'cancelled' 
+                                      ? 'bg-destructive' 
+                                      : 'bg-primary'
+                                  }`}
+                                  style={{
+                                    width: order.status === 'pending' ? '25%' 
+                                      : order.status === 'processing' ? '50%'
+                                      : order.status === 'shipped' ? '75%'
+                                      : order.status === 'delivered' ? '100%'
+                                      : '100%'
+                                  }}
+                                />
+                              </div>
+                              <div className="flex justify-between text-xs mt-1">
+                                <span className={order.status !== 'cancelled' ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                                  Pending
+                                </span>
+                                <span className={['processing', 'shipped', 'delivered'].includes(order.status) ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                                  Processing
+                                </span>
+                                <span className={['shipped', 'delivered'].includes(order.status) ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                                  Shipped
+                                </span>
+                                <span className={order.status === 'delivered' ? 'text-primary font-medium' : 'text-muted-foreground'}>
+                                  Delivered
+                                </span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ))}
