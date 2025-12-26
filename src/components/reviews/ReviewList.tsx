@@ -1,9 +1,16 @@
-import { useState } from 'react';
-import { Star, Trash2, Edit2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Star, Trash2, Edit2, ArrowUpDown } from 'lucide-react';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Review } from '@/hooks/useReviews';
 import { ReviewForm } from './ReviewForm';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +38,8 @@ interface ReviewListProps {
   loading: boolean;
 }
 
+type SortOption = 'recent' | 'highest' | 'lowest' | 'helpful';
+
 const renderStars = (rating: number) => {
   return Array.from({ length: 5 }).map((_, i) => (
     <Star
@@ -56,6 +65,23 @@ export const ReviewList = ({
   const { user } = useAuth();
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [visibleCount, setVisibleCount] = useState(5);
+  const [sortBy, setSortBy] = useState<SortOption>('recent');
+
+  const sortedReviews = useMemo(() => {
+    const sorted = [...reviews];
+    switch (sortBy) {
+      case 'recent':
+        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      case 'highest':
+        return sorted.sort((a, b) => b.rating - a.rating);
+      case 'lowest':
+        return sorted.sort((a, b) => a.rating - b.rating);
+      case 'helpful':
+        return sorted.sort((a, b) => b.helpful_count - a.helpful_count);
+      default:
+        return sorted;
+    }
+  }, [reviews, sortBy]);
 
   const handleUpdate = async (rating: number, title: string, content: string) => {
     if (!editingReview) return false;
@@ -64,7 +90,7 @@ export const ReviewList = ({
     return success;
   };
 
-  const visibleReviews = reviews.slice(0, visibleCount);
+  const visibleReviews = sortedReviews.slice(0, visibleCount);
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 md:p-8">
@@ -100,7 +126,28 @@ export const ReviewList = ({
         </div>
       </div>
 
-      <Separator className="mb-8" />
+      <Separator className="mb-6" />
+
+      {/* Sorting Options */}
+      {reviews.length > 0 && (
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="font-semibold">Customer Reviews</h3>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+            <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Sort by" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="recent">Most Recent</SelectItem>
+                <SelectItem value="highest">Highest Rated</SelectItem>
+                <SelectItem value="lowest">Lowest Rated</SelectItem>
+                <SelectItem value="helpful">Most Helpful</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       {/* Review Form or Edit Form */}
       {editingReview ? (
