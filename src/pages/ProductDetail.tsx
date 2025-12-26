@@ -11,7 +11,6 @@ import {
   RefreshCw,
   ChevronLeft,
   ChevronRight,
-  User
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -19,42 +18,14 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ProductCard } from '@/components/products/ProductCard';
+import { ReviewList } from '@/components/reviews/ReviewList';
 import { products } from '@/data/products';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useReviews } from '@/hooks/useReviews';
 
-// Mock reviews data
-const mockReviews = [
-  {
-    id: '1',
-    author: 'Sarah Johnson',
-    rating: 5,
-    date: '2024-01-10',
-    title: 'Absolutely love it!',
-    content: 'This product exceeded my expectations. The quality is outstanding and it arrived quickly. Would definitely recommend to anyone looking for a premium product.',
-    helpful: 24,
-  },
-  {
-    id: '2',
-    author: 'Michael Chen',
-    rating: 4,
-    date: '2024-01-08',
-    title: 'Great value for money',
-    content: 'Very happy with my purchase. The product works exactly as described. Only giving 4 stars because the packaging could be better.',
-    helpful: 12,
-  },
-  {
-    id: '3',
-    author: 'Emily Williams',
-    rating: 5,
-    date: '2024-01-05',
-    title: 'Perfect!',
-    content: 'Exactly what I was looking for. The build quality is impressive and it looks even better in person than in the photos.',
-    helpful: 18,
-  },
-];
+// Mock gallery images
 
 // Mock gallery images
 const getGalleryImages = (mainImage: string) => [
@@ -72,6 +43,17 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const product = products.find((p) => p.id === id);
+  
+  const {
+    reviews,
+    loading: reviewsLoading,
+    userReview,
+    averageRating,
+    ratingDistribution,
+    submitReview,
+    updateReview,
+    deleteReview,
+  } = useReviews(id || '');
 
   if (!product) {
     return (
@@ -317,7 +299,7 @@ const ProductDetail = () => {
           <Tabs defaultValue="description" className="mb-16">
             <TabsList className="w-full max-w-md grid grid-cols-3">
               <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews ({mockReviews.length})</TabsTrigger>
+              <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
               <TabsTrigger value="shipping">Shipping</TabsTrigger>
             </TabsList>
 
@@ -345,82 +327,17 @@ const ProductDetail = () => {
             </TabsContent>
 
             <TabsContent value="reviews" className="mt-6">
-              <div className="bg-card border border-border rounded-xl p-6 md:p-8">
-                {/* Reviews Summary */}
-                <div className="flex flex-col md:flex-row gap-8 mb-8">
-                  <div className="text-center md:text-left">
-                    <div className="text-5xl font-bold text-primary mb-2">
-                      {product.rating}
-                    </div>
-                    <div className="flex justify-center md:justify-start mb-2">
-                      {renderStars(Math.round(product.rating))}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Based on {product.reviews.toLocaleString()} reviews
-                    </p>
-                  </div>
-                  <Separator orientation="vertical" className="hidden md:block" />
-                  <div className="flex-1 space-y-2">
-                    {[5, 4, 3, 2, 1].map((star) => (
-                      <div key={star} className="flex items-center gap-3">
-                        <span className="text-sm w-8">{star} ★</span>
-                        <div className="flex-1 h-2 bg-secondary rounded-full overflow-hidden">
-                          <div
-                            className="h-full bg-warning rounded-full"
-                            style={{
-                              width: `${star === 5 ? 70 : star === 4 ? 20 : star === 3 ? 7 : 3}%`,
-                            }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground w-10">
-                          {star === 5 ? '70%' : star === 4 ? '20%' : star === 3 ? '7%' : '3%'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator className="mb-8" />
-
-                {/* Reviews List */}
-                <div className="space-y-6">
-                  {mockReviews.map((review) => (
-                    <div key={review.id} className="pb-6 border-b border-border last:border-0">
-                      <div className="flex items-start gap-4">
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {review.author.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="font-medium">{review.author}</p>
-                              <div className="flex items-center gap-2">
-                                <div className="flex">
-                                  {renderStars(review.rating)}
-                                </div>
-                                <span className="text-sm text-muted-foreground">
-                                  {new Date(review.date).toLocaleDateString()}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                          <h4 className="font-medium mb-1">{review.title}</h4>
-                          <p className="text-muted-foreground text-sm">{review.content}</p>
-                          <button className="text-sm text-primary mt-2 hover:underline">
-                            Helpful ({review.helpful})
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Button variant="outline" className="w-full mt-6">
-                  Load More Reviews
-                </Button>
-              </div>
+              <ReviewList
+                reviews={reviews}
+                averageRating={averageRating}
+                totalReviews={reviews.length}
+                ratingDistribution={ratingDistribution}
+                userReview={userReview}
+                onSubmit={submitReview}
+                onUpdate={updateReview}
+                onDelete={deleteReview}
+                loading={reviewsLoading}
+              />
             </TabsContent>
 
             <TabsContent value="shipping" className="mt-6">
