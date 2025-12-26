@@ -8,15 +8,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { products } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
 import { Product } from '@/types';
 
 const Wishlist = () => {
   const { user } = useAuth();
-  const { favorites, loading, toggleFavorite } = useFavorites();
+  const { favorites, loading: favoritesLoading, toggleFavorite } = useFavorites();
+  const { data: products = [], isLoading: productsLoading } = useProducts();
   const { addToCart } = useCart();
 
-  // Get full product details for favorites
+  const loading = favoritesLoading || productsLoading;
+
+  // Get full product details for favorites from Supabase products
   const favoriteProducts = products.filter((p) => favorites.includes(p.id));
 
   const handleRemove = (productId: string) => {
@@ -85,12 +88,6 @@ const Wishlist = () => {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {favoriteProducts.map((product) => {
-                const discount = product.originalPrice
-                  ? Math.round(
-                      ((product.originalPrice - product.price) / product.originalPrice) * 100
-                    )
-                  : 0;
-
                 return (
                   <div
                     key={product.id}
@@ -100,17 +97,12 @@ const Wishlist = () => {
                     <Link to={`/products/${product.id}`} className="block relative">
                       <div className="aspect-square overflow-hidden">
                         <img
-                          src={product.image}
+                          src={product.image || '/placeholder.svg'}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       </div>
-                      {discount > 0 && (
-                        <Badge className="absolute top-3 left-3 gradient-primary border-0">
-                          -{discount}%
-                        </Badge>
-                      )}
-                      {product.stock <= 5 && product.stock > 0 && (
+                      {product.stock !== null && product.stock <= 5 && product.stock > 0 && (
                         <Badge
                           variant="secondary"
                           className="absolute top-3 right-3 bg-warning/10 text-warning border-warning/30"
@@ -144,11 +136,6 @@ const Wishlist = () => {
                         <span className="text-lg font-bold text-primary">
                           ${product.price.toFixed(2)}
                         </span>
-                        {product.originalPrice && (
-                          <span className="text-sm text-muted-foreground line-through">
-                            ${product.originalPrice.toFixed(2)}
-                          </span>
-                        )}
                       </div>
 
                       {/* Actions */}
