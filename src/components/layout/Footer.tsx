@@ -40,11 +40,29 @@ export function Footer() {
         body: { email }
       });
 
+      console.log('Newsletter subscription response:', { data, error });
+
+      // Check data first - when edge function returns 409, data contains the response body
+      if (data?.error === 'already_subscribed') {
+        toast({
+          title: "Already subscribed",
+          description: "This email is already subscribed to our newsletter.",
+        });
+        setEmail('');
+        return;
+      }
+
       // Handle error responses (including 409 for already subscribed)
       if (error) {
-        // Try to parse error message for already_subscribed case
+        console.log('Error object:', JSON.stringify(error, null, 2));
+        
+        // Check if error message or context contains already_subscribed
         const errorMessage = error.message || '';
-        if (errorMessage.includes('already_subscribed') || (data?.error === 'already_subscribed')) {
+        const errorContext = (error as { context?: { body?: string } })?.context?.body || '';
+        
+        if (errorMessage.includes('already_subscribed') || 
+            errorMessage.includes('409') ||
+            errorContext.includes('already_subscribed')) {
           toast({
             title: "Already subscribed",
             description: "This email is already subscribed to our newsletter.",
@@ -55,16 +73,6 @@ export function Footer() {
         throw error;
       }
 
-      // Check if the response data indicates already subscribed
-      if (data?.error === 'already_subscribed') {
-        toast({
-          title: "Already subscribed",
-          description: "This email is already subscribed to our newsletter.",
-        });
-        setEmail('');
-        return;
-      }
-
       toast({
         title: "Subscribed!",
         description: "Thanks for subscribing to our newsletter.",
@@ -72,11 +80,12 @@ export function Footer() {
       
       setEmail('');
     } catch (error: unknown) {
-      console.error('Subscription error:', error);
+      console.error('Subscription error (catch block):', error);
+      console.error('Error JSON:', JSON.stringify(error, Object.getOwnPropertyNames(error as object), 2));
       
-      // Final check for already_subscribed in any error format
-      const errorString = String(error);
-      if (errorString.includes('already_subscribed')) {
+      // Check all possible formats for already_subscribed
+      const errorString = JSON.stringify(error);
+      if (errorString.includes('already_subscribed') || errorString.includes('409')) {
         toast({
           title: "Already subscribed",
           description: "This email is already subscribed to our newsletter.",
