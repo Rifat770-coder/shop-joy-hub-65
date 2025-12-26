@@ -1,9 +1,50 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 
 export function Footer() {
+  const [email, setEmail] = useState('');
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const { toast } = useToast();
+
+  const handleSubscribe = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubscribing(true);
+    
+    // Simulate subscription delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    toast({
+      title: "Subscribed!",
+      description: "Thanks for subscribing to our newsletter.",
+    });
+    
+    setEmail('');
+    setIsSubscribing(false);
+  };
   return (
     <footer className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-secondary/50">
       {/* Decorative Elements */}
@@ -26,17 +67,19 @@ export function Footer() {
                   Get exclusive deals, new arrivals, and insider-only discounts straight to your inbox.
                 </p>
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
                 <Input
                   type="email"
                   placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="bg-background/80 border-border/50 backdrop-blur-sm min-w-[280px] h-12"
                 />
-                <Button size="lg" className="gap-2 h-12 px-6">
-                  Subscribe
+                <Button type="submit" size="lg" className="gap-2 h-12 px-6" disabled={isSubscribing}>
+                  {isSubscribing ? 'Subscribing...' : 'Subscribe'}
                   <ArrowRight className="h-4 w-4" />
                 </Button>
-              </div>
+              </form>
             </div>
           </div>
         </div>
