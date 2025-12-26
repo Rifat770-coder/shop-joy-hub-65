@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom';
-import { Star, Heart, ShoppingCart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Star, Heart, ShoppingCart, Zap } from 'lucide-react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +13,16 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
+  const navigate = useNavigate();
+  
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
+
+  const handleBuyNow = () => {
+    addToCart(product);
+    navigate('/checkout');
+  };
 
   const favorite = isFavorite(product.id);
 
@@ -52,15 +59,24 @@ export function ProductCard({ product }: ProductCardProps) {
           <Heart className={`h-4 w-4 ${favorite ? 'fill-destructive text-destructive' : ''}`} />
         </Button>
 
-        {/* Quick Add Button */}
-        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+        {/* Quick Actions */}
+        <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
           <Button
             onClick={() => addToCart(product)}
-            className="w-full gap-2"
+            variant="secondary"
+            className="flex-1 gap-1"
             size="sm"
           >
             <ShoppingCart className="h-4 w-4" />
-            Add to Cart
+            Cart
+          </Button>
+          <Button
+            onClick={handleBuyNow}
+            className="flex-1 gap-1"
+            size="sm"
+          >
+            <Zap className="h-4 w-4" />
+            Buy Now
           </Button>
         </div>
       </div>
