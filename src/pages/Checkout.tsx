@@ -94,52 +94,57 @@ const Checkout = () => {
     try {
       const shippingAddress = `${shippingForm.fullName}\n${shippingForm.address}\n${shippingForm.city}, ${shippingForm.state} ${shippingForm.zipCode}\n${shippingForm.country}\nPhone: ${shippingForm.phone || 'N/A'}`;
 
+      // Send only product IDs and quantities - prices are validated server-side
       const orderItems = items.map((item) => ({
-        product: {
-          id: item.product.id,
-          name: item.product.name,
-          price: item.product.price,
-          image: item.product.image,
-        },
+        productId: item.product.id,
         quantity: item.quantity,
       }));
 
-      const { data, error } = await supabase
-        .from('orders')
-        .insert({
-          user_id: user.id,
+      // Use secure edge function for order creation
+      const { data, error } = await supabase.functions.invoke('create-order', {
+        body: {
           items: orderItems,
-          total: total,
-          status: 'pending',
-          shipping_address: shippingAddress,
-        })
-        .select('id')
-        .single();
+          shippingAddress: shippingAddress,
+          couponCode: appliedCoupon?.coupon?.code || undefined,
+        },
+      });
 
       if (error) throw error;
 
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to create order');
+      }
+
       // Send order confirmation email
       try {
+        const orderItemsForEmail = items.map((item) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            image: item.product.image,
+          },
+          quantity: item.quantity,
+        }));
+
         await supabase.functions.invoke('send-order-confirmation', {
           body: {
-            orderId: data.id,
+            orderId: data.orderId,
             customerEmail: shippingForm.email,
             customerName: shippingForm.fullName,
-            items: orderItems,
-            subtotal: totalPrice,
-            discount: discountAmount,
-            tax: tax,
-            total: total,
+            items: orderItemsForEmail,
+            subtotal: data.subtotal,
+            discount: data.discount,
+            tax: data.tax,
+            total: data.total,
             shippingAddress: shippingAddress,
           },
         });
-        console.log('Order confirmation email sent');
       } catch (emailError) {
-        console.error('Failed to send confirmation email:', emailError);
         // Don't fail the order if email fails
       }
 
-      setOrderId(data.id);
+      setOrderId(data.orderId);
       setStep('confirmation');
       clearCart();
 
@@ -148,7 +153,6 @@ const Checkout = () => {
         description: 'A confirmation email has been sent to your inbox.',
       });
     } catch (error: any) {
-      console.error('Error placing order:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to place order. Please try again.',
