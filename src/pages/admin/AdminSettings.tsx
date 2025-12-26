@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus } from 'lucide-react';
+import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus, Loader2 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
+import { useSettings, ShippingOption, TaxSettings } from '@/hooks/useSettings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,75 +31,27 @@ interface AdminUser {
   email: string;
   created_at: string;
 }
-interface StoreSettings {
-  storeName: string;
-  storeEmail: string;
-  storePhone: string;
-  storeAddress: string;
-  currency: string;
-  timezone: string;
-}
-
-interface ShippingOption {
-  id: string;
-  name: string;
-  price: number;
-  estimatedDays: string;
-  enabled: boolean;
-}
-
-interface TaxSettings {
-  enableTax: boolean;
-  taxRate: number;
-  taxName: string;
-  includeTaxInPrice: boolean;
-}
-
-const defaultStoreSettings: StoreSettings = {
-  storeName: 'ShopHub',
-  storeEmail: 'support@shophub.com',
-  storePhone: '+1 (555) 123-4567',
-  storeAddress: '123 Commerce Street, New York, NY 10001',
-  currency: 'USD',
-  timezone: 'America/New_York',
-};
-
-const defaultShippingOptions: ShippingOption[] = [
-  { id: '1', name: 'Standard Shipping', price: 0, estimatedDays: '5-7 business days', enabled: true },
-  { id: '2', name: 'Express Shipping', price: 9.99, estimatedDays: '2-3 business days', enabled: true },
-  { id: '3', name: 'Overnight Shipping', price: 24.99, estimatedDays: '1 business day', enabled: true },
-  { id: '4', name: 'International Shipping', price: 29.99, estimatedDays: '10-14 business days', enabled: false },
-];
-
-const defaultTaxSettings: TaxSettings = {
-  enableTax: true,
-  taxRate: 10,
-  taxName: 'Sales Tax',
-  includeTaxInPrice: false,
-};
 
 export default function AdminSettings() {
-  const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
-  const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>(defaultShippingOptions);
-  const [taxSettings, setTaxSettings] = useState<TaxSettings>(defaultTaxSettings);
-  const [saving, setSaving] = useState(false);
+  const {
+    storeSettings,
+    shippingOptions,
+    taxSettings,
+    loading,
+    saving,
+    saveSettings,
+    handleStoreChange,
+    handleShippingChange,
+    handleTaxChange,
+    addShippingOption,
+    removeShippingOption,
+  } = useSettings();
 
   // User roles state
   const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [addingAdmin, setAddingAdmin] = useState(false);
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
-    const savedStore = localStorage.getItem('admin_store_settings');
-    const savedShipping = localStorage.getItem('admin_shipping_options');
-    const savedTax = localStorage.getItem('admin_tax_settings');
-
-    if (savedStore) setStoreSettings(JSON.parse(savedStore));
-    if (savedShipping) setShippingOptions(JSON.parse(savedShipping));
-    if (savedTax) setTaxSettings(JSON.parse(savedTax));
-  }, []);
 
   // Load admin users
   useEffect(() => {
@@ -245,56 +198,15 @@ export default function AdminSettings() {
     }
   };
 
-  const handleStoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setStoreSettings((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleShippingChange = (id: string, field: keyof ShippingOption, value: string | number | boolean) => {
-    setShippingOptions((prev) =>
-      prev.map((option) =>
-        option.id === id ? { ...option, [field]: value } : option
-      )
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
     );
-  };
-
-  const handleTaxChange = (field: keyof TaxSettings, value: string | number | boolean) => {
-    setTaxSettings((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const saveSettings = async () => {
-    setSaving(true);
-    
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    // Save to localStorage
-    localStorage.setItem('admin_store_settings', JSON.stringify(storeSettings));
-    localStorage.setItem('admin_shipping_options', JSON.stringify(shippingOptions));
-    localStorage.setItem('admin_tax_settings', JSON.stringify(taxSettings));
-
-    toast({
-      title: 'Settings saved',
-      description: 'Your settings have been saved successfully.',
-    });
-
-    setSaving(false);
-  };
-
-  const addShippingOption = () => {
-    const newOption: ShippingOption = {
-      id: Date.now().toString(),
-      name: 'New Shipping Option',
-      price: 0,
-      estimatedDays: '3-5 business days',
-      enabled: true,
-    };
-    setShippingOptions((prev) => [...prev, newOption]);
-  };
-
-  const removeShippingOption = (id: string) => {
-    setShippingOptions((prev) => prev.filter((option) => option.id !== id));
-  };
+  }
 
   return (
     <AdminLayout>
@@ -309,7 +221,10 @@ export default function AdminSettings() {
           </div>
           <Button onClick={saveSettings} disabled={saving} className="gap-2">
             {saving ? (
-              <>Saving...</>
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
             ) : (
               <>
                 <Save className="h-4 w-4" />
