@@ -20,6 +20,7 @@ import AdminCustomers from "./pages/admin/AdminCustomers";
 import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminInventory from "./pages/admin/AdminInventory";
+import AdminCoupons from "./pages/admin/AdminCoupons";
 import OrderHistory from "./pages/OrderHistory";
 import Wishlist from "./pages/Wishlist";
 import Checkout from "./pages/Checkout";
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/inventory" element={<AdminInventory />} />
+              <Route path="/admin/coupons" element={<AdminCoupons />} />
               <Route path="*" element={<NotFound />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
