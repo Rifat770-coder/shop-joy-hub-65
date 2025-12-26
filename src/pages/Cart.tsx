@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -8,14 +8,59 @@ import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
 import { CouponInput } from '@/components/cart/CouponInput';
 import { AppliedCoupon } from '@/hooks/useCoupons';
+import { supabase } from '@/integrations/supabase/client';
+
+interface TaxSettings {
+  enableTax: boolean;
+  taxRate: number;
+  taxName: string;
+  includeTaxInPrice: boolean;
+}
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [taxSettings, setTaxSettings] = useState<TaxSettings>({
+    enableTax: false,
+    taxRate: 0,
+    taxName: 'Tax',
+    includeTaxInPrice: false,
+  });
+  const [hasShippingOptions, setHasShippingOptions] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('*');
+
+      if (!error && data) {
+        const taxData = data.find(s => s.key === 'tax');
+        const shippingData = data.find(s => s.key === 'shipping');
+
+        if (taxData?.value) {
+          const value = taxData.value as unknown as TaxSettings;
+          setTaxSettings({
+            enableTax: value.enableTax ?? false,
+            taxRate: value.taxRate ?? 0,
+            taxName: value.taxName ?? 'Tax',
+            includeTaxInPrice: value.includeTaxInPrice ?? false,
+          });
+        }
+
+        if (shippingData?.value) {
+          const shippingOptions = shippingData.value as unknown as Array<{ enabled: boolean }>;
+          setHasShippingOptions(Array.isArray(shippingOptions) && shippingOptions.some(opt => opt.enabled));
+        }
+      }
+    };
+
+    fetchSettings();
+  }, []);
 
   const discountAmount = appliedCoupon?.discountAmount || 0;
   const subtotalAfterDiscount = totalPrice - discountAmount;
-  const tax = subtotalAfterDiscount * 0.1;
+  const tax = taxSettings.enableTax ? subtotalAfterDiscount * (taxSettings.taxRate / 100) : 0;
   const finalTotal = subtotalAfterDiscount + tax;
 
   if (items.length === 0) {
@@ -157,11 +202,17 @@ const Cart = () => {
                   
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className="text-success">Free</span>
+                    <span className="text-muted-foreground">
+                      {hasShippingOptions ? 'Calculated at checkout' : 'Free'}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span className="text-muted-foreground">
+                      {taxSettings.taxName} {taxSettings.enableTax && `(${taxSettings.taxRate}%)`}
+                    </span>
+                    <span>
+                      {taxSettings.enableTax ? `$${tax.toFixed(2)}` : 'Not applicable'}
+                    </span>
                   </div>
                 </div>
 
