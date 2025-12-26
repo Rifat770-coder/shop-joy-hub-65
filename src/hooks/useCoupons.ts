@@ -142,9 +142,18 @@ export function useCoupons() {
 
   const incrementCouponUsage = useCallback(async (couponId: string) => {
     try {
-      const { error } = await supabase.rpc('increment_coupon_usage', { coupon_id: couponId });
-      if (error) {
-        console.error('Error incrementing coupon usage:', error);
+      // Using direct update since RPC types may not be immediately available
+      const { data: currentCoupon } = await supabase
+        .from('coupons')
+        .select('used_count')
+        .eq('id', couponId)
+        .single();
+      
+      if (currentCoupon) {
+        await supabase
+          .from('coupons')
+          .update({ used_count: currentCoupon.used_count + 1 })
+          .eq('id', couponId);
       }
     } catch (error) {
       console.error('Error incrementing coupon usage:', error);

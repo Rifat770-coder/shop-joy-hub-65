@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -5,9 +6,17 @@ import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
+import { CouponInput } from '@/components/cart/CouponInput';
+import { AppliedCoupon } from '@/hooks/useCoupons';
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const subtotalAfterDiscount = totalPrice - discountAmount;
+  const tax = subtotalAfterDiscount * 0.1;
+  const finalTotal = subtotalAfterDiscount + tax;
 
   if (items.length === 0) {
     return (
@@ -131,13 +140,28 @@ const Cart = () => {
                     <span className="text-muted-foreground">Subtotal</span>
                     <span>${totalPrice.toFixed(2)}</span>
                   </div>
+                  
+                  {/* Coupon Input */}
+                  <CouponInput
+                    orderTotal={totalPrice}
+                    appliedCoupon={appliedCoupon}
+                    onCouponApplied={setAppliedCoupon}
+                  />
+                  
+                  {appliedCoupon && (
+                    <div className="flex justify-between text-sm text-success">
+                      <span>Discount</span>
+                      <span>-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
                     <span className="text-success">Free</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${(totalPrice * 0.1).toFixed(2)}</span>
+                    <span>${tax.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -146,7 +170,7 @@ const Cart = () => {
                 <div className="flex justify-between font-semibold text-lg mb-6">
                   <span>Total</span>
                   <span className="text-primary">
-                    ${(totalPrice * 1.1).toFixed(2)}
+                    ${finalTotal.toFixed(2)}
                   </span>
                 </div>
 

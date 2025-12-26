@@ -10,6 +10,7 @@ import {
   Menu,
   LogOut,
   Boxes,
+  Tag,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,6 +29,7 @@ const navItems = [
   { href: '/admin/inventory', icon: Boxes, label: 'Inventory' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
+  { href: '/admin/coupons', icon: Tag, label: 'Coupons' },
   { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];

@@ -12,6 +12,8 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { CouponInput } from '@/components/cart/CouponInput';
+import { AppliedCoupon } from '@/hooks/useCoupons';
 
 interface ShippingForm {
   fullName: string;
@@ -32,6 +34,7 @@ const Checkout = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState('card');
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   
   const [shippingForm, setShippingForm] = useState<ShippingForm>({
     fullName: '',
@@ -44,8 +47,10 @@ const Checkout = () => {
     country: 'United States',
   });
 
-  const tax = totalPrice * 0.1;
-  const total = totalPrice + tax;
+  const discountAmount = appliedCoupon?.discountAmount || 0;
+  const subtotalAfterDiscount = totalPrice - discountAmount;
+  const tax = subtotalAfterDiscount * 0.1;
+  const total = subtotalAfterDiscount + tax;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -430,12 +435,27 @@ const Checkout = () => {
 
                   <Separator className="my-4" />
 
+                  {/* Coupon Input */}
+                  <CouponInput
+                    orderTotal={totalPrice}
+                    appliedCoupon={appliedCoupon}
+                    onCouponApplied={setAppliedCoupon}
+                  />
+
+                  <Separator className="my-4" />
+
                   {/* Totals */}
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Subtotal</span>
                       <span>${totalPrice.toFixed(2)}</span>
                     </div>
+                    {appliedCoupon && (
+                      <div className="flex justify-between text-sm text-success">
+                        <span>Discount ({appliedCoupon.coupon.code})</span>
+                        <span>-${discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Shipping</span>
                       <span className="text-success">Free</span>
