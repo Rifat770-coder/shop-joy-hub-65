@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SPREADSHEET_ID = '1Ytg0ZQh6jAFuIrvGoarlHsapCu1wDzzi7N5Fb9E020GZjpOv-GKgFwII';
+const SPREADSHEET_ID = '1RlH5_KfY5XOU7kvqeaFY2sRmPWhshvcH2dCQ5Vci9Bo';
 
 function parseServiceAccountKey(rawKey: string): Record<string, string> {
   let key = rawKey.trim();
