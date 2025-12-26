@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+// Full Coupon type for admin pages (fetched directly from DB by admins)
 export interface Coupon {
   id: string;
   code: string;
@@ -18,9 +19,27 @@ export interface Coupon {
   updated_at: string;
 }
 
+// Simplified coupon info returned from secure RPC validation
+export interface ValidatedCoupon {
+  id: string;
+  code: string;
+  discount_type: 'percentage' | 'fixed';
+  discount_value: number;
+}
+
 export interface AppliedCoupon {
-  coupon: Coupon;
+  coupon: ValidatedCoupon;
   discountAmount: number;
+}
+
+interface ValidateCouponResponse {
+  valid: boolean;
+  message: string;
+  coupon_id?: string;
+  code?: string;
+  discount_type?: string;
+  discount_value?: number;
+  discount_amount?: number;
 }
 
 export function useCoupons() {
@@ -40,82 +59,40 @@ export function useCoupons() {
     setLoading(true);
 
     try {
-      const { data: coupon, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .eq('code', code.toUpperCase().trim())
-        .eq('is_active', true)
-        .maybeSingle();
+      // Use secure RPC function instead of direct SELECT
+      const { data, error } = await supabase.rpc('validate_coupon_code', {
+        p_code: code,
+        p_order_total: orderTotal
+      });
 
       if (error) throw error;
 
-      if (!coupon) {
+      const result = data as unknown as ValidateCouponResponse;
+
+      if (!result.valid) {
         toast({
           title: 'Invalid coupon',
-          description: 'This coupon code is not valid.',
+          description: result.message,
           variant: 'destructive',
         });
         return null;
-      }
-
-      // Check if coupon has started
-      if (coupon.starts_at && new Date(coupon.starts_at) > new Date()) {
-        toast({
-          title: 'Coupon not active',
-          description: 'This coupon is not yet active.',
-          variant: 'destructive',
-        });
-        return null;
-      }
-
-      // Check if coupon has expired
-      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-        toast({
-          title: 'Coupon expired',
-          description: 'This coupon has expired.',
-          variant: 'destructive',
-        });
-        return null;
-      }
-
-      // Check usage limit
-      if (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses) {
-        toast({
-          title: 'Coupon exhausted',
-          description: 'This coupon has reached its usage limit.',
-          variant: 'destructive',
-        });
-        return null;
-      }
-
-      // Check minimum order
-      if (orderTotal < coupon.minimum_order) {
-        toast({
-          title: 'Minimum not met',
-          description: `This coupon requires a minimum order of $${coupon.minimum_order.toFixed(2)}.`,
-          variant: 'destructive',
-        });
-        return null;
-      }
-
-      // Calculate discount
-      let discountAmount = 0;
-      if (coupon.discount_type === 'percentage') {
-        discountAmount = (orderTotal * coupon.discount_value) / 100;
-      } else {
-        discountAmount = Math.min(coupon.discount_value, orderTotal);
       }
 
       const applied: AppliedCoupon = {
-        coupon: coupon as Coupon,
-        discountAmount,
+        coupon: {
+          id: result.coupon_id!,
+          code: result.code!,
+          discount_type: result.discount_type as 'percentage' | 'fixed',
+          discount_value: result.discount_value!,
+        },
+        discountAmount: result.discount_amount!,
       };
 
       setAppliedCoupon(applied);
 
       toast({
         title: 'Coupon applied!',
-        description: `You saved $${discountAmount.toFixed(2)}`,
+        description: `You saved $${result.discount_amount!.toFixed(2)}`,
       });
 
       return applied;
@@ -142,19 +119,8 @@ export function useCoupons() {
 
   const incrementCouponUsage = useCallback(async (couponId: string) => {
     try {
-      // Using direct update since RPC types may not be immediately available
-      const { data: currentCoupon } = await supabase
-        .from('coupons')
-        .select('used_count')
-        .eq('id', couponId)
-        .single();
-      
-      if (currentCoupon) {
-        await supabase
-          .from('coupons')
-          .update({ used_count: currentCoupon.used_count + 1 })
-          .eq('id', couponId);
-      }
+      // Use the existing RPC function for incrementing usage
+      await supabase.rpc('increment_coupon_usage', { coupon_id: couponId });
     } catch (error) {
       console.error('Error incrementing coupon usage:', error);
     }
