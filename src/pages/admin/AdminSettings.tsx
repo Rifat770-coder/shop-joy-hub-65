@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Store, Truck, Percent, Check } from 'lucide-react';
+import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,27 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
+interface AdminUser {
+  id: string;
+  user_id: string;
+  role: 'admin' | 'moderator' | 'user';
+  email: string;
+  created_at: string;
+}
 interface StoreSettings {
   storeName: string;
   storeEmail: string;
@@ -63,6 +83,12 @@ export default function AdminSettings() {
   const [taxSettings, setTaxSettings] = useState<TaxSettings>(defaultTaxSettings);
   const [saving, setSaving] = useState(false);
 
+  // User roles state
+  const [adminUsers, setAdminUsers] = useState<AdminUser[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [addingAdmin, setAddingAdmin] = useState(false);
+
   // Load settings from localStorage on mount
   useEffect(() => {
     const savedStore = localStorage.getItem('admin_store_settings');
@@ -73,6 +99,151 @@ export default function AdminSettings() {
     if (savedShipping) setShippingOptions(JSON.parse(savedShipping));
     if (savedTax) setTaxSettings(JSON.parse(savedTax));
   }, []);
+
+  // Load admin users
+  useEffect(() => {
+    fetchAdminUsers();
+  }, []);
+
+  const fetchAdminUsers = async () => {
+    setLoadingRoles(true);
+    try {
+      // Get all user roles with admin role
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('role', 'admin');
+
+      if (rolesError) throw rolesError;
+
+      // Get profile info for each admin user
+      const adminUsersWithDetails: AdminUser[] = [];
+      
+      for (const role of roles || []) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', role.user_id)
+          .single();
+
+        adminUsersWithDetails.push({
+          id: role.id,
+          user_id: role.user_id,
+          role: role.role as 'admin',
+          email: profile?.full_name || 'Unknown User',
+          created_at: role.created_at,
+        });
+      }
+
+      setAdminUsers(adminUsersWithDetails);
+    } catch (error) {
+      console.error('Error fetching admin users:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load admin users',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoadingRoles(false);
+    }
+  };
+
+  const addAdminRole = async () => {
+    if (!newAdminEmail.trim()) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a user ID',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setAddingAdmin(true);
+    try {
+      // Check if user already has admin role
+      const { data: existingRole, error: checkError } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', newAdminEmail.trim())
+        .eq('role', 'admin')
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existingRole) {
+        toast({
+          title: 'Already Admin',
+          description: 'This user already has admin privileges',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Add admin role
+      const { error: insertError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: newAdminEmail.trim(),
+          role: 'admin',
+        });
+
+      if (insertError) throw insertError;
+
+      toast({
+        title: 'Admin Added',
+        description: 'Successfully granted admin privileges',
+      });
+
+      setNewAdminEmail('');
+      fetchAdminUsers();
+    } catch (error: any) {
+      console.error('Error adding admin:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to add admin role',
+        variant: 'destructive',
+      });
+    } finally {
+      setAddingAdmin(false);
+    }
+  };
+
+  const removeAdminRole = async (roleId: string, userId: string) => {
+    try {
+      // Get current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (user?.id === userId) {
+        toast({
+          title: 'Error',
+          description: 'You cannot remove your own admin privileges',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('user_roles')
+        .delete()
+        .eq('id', roleId);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Admin Removed',
+        description: 'Successfully revoked admin privileges',
+      });
+
+      fetchAdminUsers();
+    } catch (error: any) {
+      console.error('Error removing admin:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to remove admin role',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleStoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -161,6 +332,10 @@ export default function AdminSettings() {
             <TabsTrigger value="tax" className="gap-2">
               <Percent className="h-4 w-4" />
               Tax
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="gap-2">
+              <Shield className="h-4 w-4" />
+              User Roles
             </TabsTrigger>
           </TabsList>
 
@@ -414,6 +589,109 @@ export default function AdminSettings() {
                     </div>
                   </>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* User Roles Settings */}
+          <TabsContent value="roles">
+            <Card>
+              <CardHeader>
+                <CardTitle>Admin User Management</CardTitle>
+                <CardDescription>
+                  Manage users with administrator privileges
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Add new admin */}
+                <div className="p-4 bg-secondary/50 rounded-lg space-y-4">
+                  <h4 className="font-medium">Add New Admin</h4>
+                  <div className="flex gap-3">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Enter user ID (UUID)"
+                        value={newAdminEmail}
+                        onChange={(e) => setNewAdminEmail(e.target.value)}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Enter the user's UUID from their profile
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={addAdminRole} 
+                      disabled={addingAdmin || !newAdminEmail.trim()}
+                      className="gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      {addingAdmin ? 'Adding...' : 'Add Admin'}
+                    </Button>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Current admins list */}
+                <div className="space-y-4">
+                  <h4 className="font-medium">Current Administrators</h4>
+                  
+                  {loadingRoles ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      Loading administrators...
+                    </div>
+                  ) : adminUsers.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No administrators found
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {adminUsers.map((admin) => (
+                        <div
+                          key={admin.id}
+                          className="flex items-center justify-between p-4 border border-border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                              <Shield className="h-5 w-5 text-primary" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{admin.email}</p>
+                              <p className="text-sm text-muted-foreground">
+                                ID: {admin.user_id.slice(0, 8)}...
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge variant="secondary">Admin</Badge>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Remove Admin Privileges?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    This will revoke admin access for this user. They will no longer be able to access the admin dashboard or manage the store.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => removeAdminRole(admin.id, admin.user_id)}
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                  >
+                                    Remove Admin
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
