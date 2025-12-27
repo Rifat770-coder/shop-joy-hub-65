@@ -332,7 +332,7 @@ const Checkout = () => {
           {step !== 'confirmation' && (
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Main Form */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-6 order-2 lg:order-1">
                 {/* Shipping Form */}
                 {step === 'shipping' && (
                   <div className="bg-card border border-border rounded-xl p-6">
@@ -446,32 +446,33 @@ const Checkout = () => {
                           {shippingOptions.map((option) => (
                             <div
                               key={option.id}
-                              className={`flex items-center space-x-3 p-4 border rounded-lg transition-colors cursor-pointer ${
+                              className={`flex items-center justify-between p-4 border rounded-lg cursor-pointer transition-colors ${
                                 selectedShipping === option.id
                                   ? 'border-primary bg-primary/5'
                                   : 'border-border hover:border-primary/50'
                               }`}
                               onClick={() => setSelectedShipping(option.id)}
                             >
-                              <RadioGroupItem value={option.id} id={`shipping-${option.id}`} />
-                              <Label htmlFor={`shipping-${option.id}`} className="flex-1 cursor-pointer">
-                                <div className="flex justify-between items-start">
-                                  <div>
-                                    <p className="font-medium">{option.name}</p>
-                                    <p className="text-sm text-muted-foreground">{option.estimatedDays}</p>
-                                  </div>
-                                  <p className="font-semibold text-primary">
-                                    {option.price === 0 ? 'Free' : `$${option.price.toFixed(2)}`}
-                                  </p>
+                              <div className="flex items-center gap-3">
+                                <RadioGroupItem value={option.id} id={option.id} />
+                                <div>
+                                  <Label htmlFor={option.id} className="cursor-pointer font-medium">
+                                    {option.name}
+                                  </Label>
+                                  <p className="text-sm text-muted-foreground">{option.estimatedDays}</p>
                                 </div>
-                              </Label>
+                              </div>
+                              <span className="font-medium text-primary">
+                                {option.price === 0 ? 'Free' : `$${option.price.toFixed(2)}`}
+                              </span>
                             </div>
                           ))}
                         </RadioGroup>
                       </div>
                     ) : null}
 
-                    <div className="flex justify-between mt-6">
+                    {/* Desktop navigation buttons */}
+                    <div className="hidden lg:flex justify-between mt-6">
                       <Link to="/cart">
                         <Button variant="ghost" className="gap-2">
                           <ArrowLeft className="h-4 w-4" />
@@ -581,7 +582,8 @@ const Checkout = () => {
                       </div>
                     )}
 
-                    <div className="flex justify-between mt-6">
+                    {/* Desktop navigation buttons */}
+                    <div className="hidden lg:flex justify-between mt-6">
                       <Button variant="ghost" className="gap-2" onClick={() => setStep('shipping')}>
                         <ArrowLeft className="h-4 w-4" />
                         Back to Shipping
@@ -595,8 +597,8 @@ const Checkout = () => {
               </div>
 
               {/* Order Summary Sidebar */}
-              <div className="lg:col-span-1">
-                <div className="bg-card border border-border rounded-xl p-6 sticky top-24">
+              <div className="lg:col-span-1 order-1 lg:order-2">
+                <div className="bg-card border border-border rounded-xl p-6 lg:sticky lg:top-24">
                   <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
 
                   {/* Items */}
@@ -682,6 +684,34 @@ const Checkout = () => {
                       </div>
                     </>
                   )}
+
+                  {/* Mobile navigation buttons inside Order Summary */}
+                  <div className="lg:hidden mt-6">
+                    {step === 'shipping' && (
+                      <div className="flex flex-col gap-3">
+                        <Button onClick={handleContinueToPayment} className="w-full">
+                          Continue to Payment
+                        </Button>
+                        <Link to="/cart" className="w-full">
+                          <Button variant="ghost" className="gap-2 w-full">
+                            <ArrowLeft className="h-4 w-4" />
+                            Back to Cart
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                    {step === 'payment' && (
+                      <div className="flex flex-col gap-3">
+                        <Button onClick={handlePlaceOrder} disabled={isSubmitting} className="w-full">
+                          {isSubmitting ? 'Placing Order...' : 'Place Order'}
+                        </Button>
+                        <Button variant="ghost" className="gap-2 w-full" onClick={() => setStep('shipping')}>
+                          <ArrowLeft className="h-4 w-4" />
+                          Back to Shipping
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
