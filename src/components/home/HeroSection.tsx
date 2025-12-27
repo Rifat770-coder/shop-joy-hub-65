@@ -7,7 +7,7 @@ export function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.1)_0%,transparent_50%)]" />
       
-      <div className="container relative py-16 md:py-24 lg:py-32">
+      <div className="container relative py-8 md:py-24 lg:py-32">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="space-y-8 animate-fade-in">
@@ -16,7 +16,7 @@ export function HeroSection() {
               <span>Flash Sale - Up to 50% Off</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+            <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold leading-tight">
               Discover Amazing
               <span className="block text-gradient">Products Today</span>
             </h1>
@@ -63,7 +63,7 @@ export function HeroSection() {
           </div>
 
           {/* Hero Image */}
-          <div className="relative animate-slide-up" style={{
+          <div className="relative animate-slide-up hidden md:block" style={{
           animationDelay: '0.2s'
         }}>
             <div className="relative aspect-square max-w-lg mx-auto">
