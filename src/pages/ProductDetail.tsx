@@ -137,20 +137,20 @@ const ProductDetail = () => {
       <main className="flex-1 py-8">
         <div className="container">
           {/* Breadcrumb */}
-          <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-            <Link to="/" className="hover:text-foreground">Home</Link>
-            <span>/</span>
-            <Link to="/products" className="hover:text-foreground">Products</Link>
-            <span>/</span>
-            <Link to={`/products?category=${product.category}`} className="hover:text-foreground">
+          <nav className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground mb-4 md:mb-6 overflow-x-auto whitespace-nowrap pb-2">
+            <Link to="/" className="hover:text-foreground shrink-0">Home</Link>
+            <span className="shrink-0">/</span>
+            <Link to="/products" className="hover:text-foreground shrink-0">Products</Link>
+            <span className="shrink-0">/</span>
+            <Link to={`/products?category=${product.category}`} className="hover:text-foreground shrink-0">
               {product.category}
             </Link>
-            <span>/</span>
-            <span className="text-foreground">{product.name}</span>
+            <span className="shrink-0">/</span>
+            <span className="text-foreground truncate max-w-[120px] md:max-w-none">{product.name}</span>
           </nav>
 
           {/* Product Section */}
-          <div className="grid lg:grid-cols-2 gap-12 mb-16">
+          <div className="grid lg:grid-cols-2 gap-6 md:gap-12 mb-8 md:mb-16">
             {/* Image Gallery */}
             <div className="space-y-4">
               <div className="relative aspect-square bg-secondary/50 rounded-2xl overflow-hidden group">
@@ -183,12 +183,12 @@ const ProductDetail = () => {
               </div>
 
               {/* Thumbnails */}
-              <div className="flex gap-3">
+              <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2">
                 {galleryImages.map((img, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImageIndex(index)}
-                    className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                    className={`w-14 h-14 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
                       selectedImageIndex === index
                         ? 'border-primary'
                         : 'border-transparent hover:border-border'
@@ -210,7 +210,7 @@ const ProductDetail = () => {
                 <p className="text-sm text-primary font-medium uppercase tracking-wide mb-2">
                   {product.category}
                 </p>
-                <h1 className="text-3xl md:text-4xl font-bold mb-4">{product.name}</h1>
+                <h1 className="text-xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">{product.name}</h1>
                 
                 {/* Rating */}
                 <div className="flex items-center gap-3">
@@ -226,7 +226,7 @@ const ProductDetail = () => {
 
               {/* Price */}
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold text-primary">
+                <span className="text-2xl md:text-4xl font-bold text-primary">
                   ${Number(product.price).toFixed(2)}
                 </span>
               </div>
@@ -273,56 +273,57 @@ const ProductDetail = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4">
+              <div className="flex gap-2 md:gap-4">
                 <Button
                   variant="secondary"
-                  size="xl"
-                  className="flex-1 gap-2"
+                  size="default"
+                  className="flex-1 gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4"
                   onClick={() => addToCart(cartProduct as any, quantity)}
                   disabled={product.stock === 0}
                 >
-                  <ShoppingCart className="h-5 w-5" />
-                  Add to Cart
+                  <ShoppingCart className="h-4 w-4 md:h-5 md:w-5" />
+                  <span className="hidden sm:inline">Add to Cart</span>
+                  <span className="sm:hidden">Cart</span>
                 </Button>
                 <Button
                   variant="hero"
-                  size="xl"
-                  className="flex-1 gap-2"
+                  size="default"
+                  className="flex-1 gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4"
                   onClick={() => {
                     addToCart(cartProduct as any, quantity);
                     navigate('/checkout');
                   }}
                   disabled={product.stock === 0}
                 >
-                  <Zap className="h-5 w-5" />
+                  <Zap className="h-4 w-4 md:h-5 md:w-5" />
                   Buy Now
                 </Button>
                 <Button
                   variant="outline"
-                  size="xl"
-                  className={favorite ? 'text-destructive border-destructive/30' : ''}
+                  size="default"
+                  className={`px-2 md:px-4 ${favorite ? 'text-destructive border-destructive/30' : ''}`}
                   onClick={() => toggleFavorite(product.id)}
                 >
-                  <Heart className={`h-5 w-5 ${favorite ? 'fill-destructive' : ''}`} />
+                  <Heart className={`h-4 w-4 md:h-5 md:w-5 ${favorite ? 'fill-destructive' : ''}`} />
                 </Button>
               </div>
 
               {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-4 pt-4">
-                <div className="flex flex-col items-center text-center p-4 bg-secondary/50 rounded-lg">
-                  <Truck className="h-6 w-6 text-primary mb-2" />
-                  <span className="text-xs font-medium">Free Shipping</span>
-                  <span className="text-xs text-muted-foreground">Orders $50+</span>
+              <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4">
+                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
+                  <Truck className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
+                  <span className="text-[10px] md:text-xs font-medium">Free Shipping</span>
+                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">Orders $50+</span>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 bg-secondary/50 rounded-lg">
-                  <Shield className="h-6 w-6 text-primary mb-2" />
-                  <span className="text-xs font-medium">Secure Payment</span>
-                  <span className="text-xs text-muted-foreground">100% Protected</span>
+                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
+                  <Shield className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
+                  <span className="text-[10px] md:text-xs font-medium">Secure Pay</span>
+                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">100% Protected</span>
                 </div>
-                <div className="flex flex-col items-center text-center p-4 bg-secondary/50 rounded-lg">
-                  <RefreshCw className="h-6 w-6 text-primary mb-2" />
-                  <span className="text-xs font-medium">Easy Returns</span>
-                  <span className="text-xs text-muted-foreground">30-day Policy</span>
+                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
+                  <RefreshCw className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
+                  <span className="text-[10px] md:text-xs font-medium">Easy Returns</span>
+                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">30-day Policy</span>
                 </div>
               </div>
             </div>
@@ -411,7 +412,7 @@ const ProductDetail = () => {
           {relatedProducts.length > 0 && (
             <section>
               <h2 className="text-2xl font-bold mb-6">Related Products</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
                   <ProductCard key={relatedProduct.id} product={relatedProduct as any} />
                 ))}
