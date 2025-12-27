@@ -483,6 +483,19 @@ const Checkout = () => {
                         Continue to Payment
                       </Button>
                     </div>
+
+                    {/* Mobile navigation buttons */}
+                    <div className="lg:hidden flex flex-col gap-3 mt-6">
+                      <Button onClick={handleContinueToPayment} className="w-full">
+                        Continue to Payment
+                      </Button>
+                      <Link to="/cart" className="w-full">
+                        <Button variant="ghost" className="gap-2 w-full">
+                          <ArrowLeft className="h-4 w-4" />
+                          Back to Cart
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
 
@@ -592,6 +605,17 @@ const Checkout = () => {
                         {isSubmitting ? 'Placing Order...' : 'Place Order'}
                       </Button>
                     </div>
+
+                    {/* Mobile navigation buttons */}
+                    <div className="lg:hidden flex flex-col gap-3 mt-6">
+                      <Button onClick={handlePlaceOrder} disabled={isSubmitting} className="w-full">
+                        {isSubmitting ? 'Placing Order...' : 'Place Order'}
+                      </Button>
+                      <Button variant="ghost" className="gap-2 w-full" onClick={() => setStep('shipping')}>
+                        <ArrowLeft className="h-4 w-4" />
+                        Back to Shipping
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -685,33 +709,6 @@ const Checkout = () => {
                     </>
                   )}
 
-                  {/* Mobile navigation buttons inside Order Summary */}
-                  <div className="lg:hidden mt-6">
-                    {step === 'shipping' && (
-                      <div className="flex flex-col gap-3">
-                        <Button onClick={handleContinueToPayment} className="w-full">
-                          Continue to Payment
-                        </Button>
-                        <Link to="/cart" className="w-full">
-                          <Button variant="ghost" className="gap-2 w-full">
-                            <ArrowLeft className="h-4 w-4" />
-                            Back to Cart
-                          </Button>
-                        </Link>
-                      </div>
-                    )}
-                    {step === 'payment' && (
-                      <div className="flex flex-col gap-3">
-                        <Button onClick={handlePlaceOrder} disabled={isSubmitting} className="w-full">
-                          {isSubmitting ? 'Placing Order...' : 'Place Order'}
-                        </Button>
-                        <Button variant="ghost" className="gap-2 w-full" onClick={() => setStep('shipping')}>
-                          <ArrowLeft className="h-4 w-4" />
-                          Back to Shipping
-                        </Button>
-                      </div>
-                    )}
-                  </div>
                 </div>
               </div>
             </div>
