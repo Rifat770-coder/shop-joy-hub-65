@@ -72,7 +72,7 @@ export function Footer() {
     }
   };
   return (
-    <footer className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-secondary/50">
+    <footer className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-secondary/50 pb-20 md:pb-0">
       {/* Decorative Elements */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,hsl(var(--primary)/0.08)_0%,transparent_50%)]" />
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(var(--primary)/0.05)_0%,transparent_50%)]" />

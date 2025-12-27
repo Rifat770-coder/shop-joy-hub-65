@@ -174,6 +174,24 @@ export function Header() {
           </Sheet>
         </div>
       </div>
+      {/* Mobile Navigation Pills - Only visible on small screens */}
+      <div className="md:hidden border-t border-border bg-background overflow-x-auto">
+        <div className="container flex items-center gap-2 py-2">
+          {navLinks.slice(0, 3).map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className={`px-4 py-1.5 text-sm font-medium rounded-full whitespace-nowrap transition-colors ${
+                isActive(link.href)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
+              }`}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }

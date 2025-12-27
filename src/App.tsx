@@ -8,6 +8,7 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminRoute } from "@/components/AdminRoute";
+import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
 
 // Eagerly load the Index page for fast initial render
 import Index from "./pages/Index";
@@ -77,6 +78,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            <MobileBottomNav />
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>
