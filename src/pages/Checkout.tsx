@@ -165,8 +165,7 @@ const Checkout = () => {
         throw new Error(data.error || 'Failed to create order');
       }
 
-      // Send order confirmation email
-      let emailSentSuccessfully = true;
+      // Try to send order confirmation email (non-blocking, silent failure)
       try {
         const orderItemsForEmail = items.map((item) => ({
           product: {
@@ -178,7 +177,8 @@ const Checkout = () => {
           quantity: item.quantity,
         }));
 
-        const emailResult = await supabase.functions.invoke('send-order-confirmation', {
+        // Fire and forget - don't wait for email result
+        supabase.functions.invoke('send-order-confirmation', {
           body: {
             orderId: data.orderId,
             customerEmail: shippingForm.email,
@@ -193,32 +193,21 @@ const Checkout = () => {
             total: data.total,
             shippingAddress: shippingAddress,
           },
+        }).catch((emailError) => {
+          console.warn('Email sending failed:', emailError);
         });
-        
-        if (emailResult.error) {
-          console.warn('Email sending failed:', emailResult.error);
-          emailSentSuccessfully = false;
-        }
       } catch (emailError) {
         console.warn('Email sending failed:', emailError);
-        emailSentSuccessfully = false;
       }
 
       setOrderId(data.orderId);
       setStep('confirmation');
       clearCart();
 
-      if (emailSentSuccessfully) {
-        toast({
-          title: 'Order placed successfully!',
-          description: 'A confirmation email has been sent to your inbox.',
-        });
-      } else {
-        toast({
-          title: 'Order placed successfully!',
-          description: 'Your order is confirmed. We could not send a confirmation email, but you can view your order in Order History.',
-        });
-      }
+      toast({
+        title: 'Order placed successfully!',
+        description: 'Thank you for your order. You can track it in Order History.',
+      });
     } catch (error: any) {
       toast({
         title: 'Error',
