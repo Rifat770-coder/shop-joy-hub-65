@@ -176,7 +176,7 @@ const handler = async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "ShopHub <onboarding@resend.dev>",
+        from: "ShopHub <noreply@easytobuy.fashion>",
         to: [customerEmail],
         subject: `Order Confirmed - #${orderId.slice(0, 8).toUpperCase()}`,
         html: emailHtml,
