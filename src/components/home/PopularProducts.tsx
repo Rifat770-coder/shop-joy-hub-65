@@ -7,11 +7,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useUserBehaviorTracking } from '@/hooks/useAnalytics';
 import { useCart } from '@/context/CartContext';
 import { getPrimaryImage } from '@/lib/image-utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 export function PopularProducts() {
   const { data: popularProducts = [], isLoading } = usePopularProducts(8);
   const { trackProductView, trackAddToCart } = useUserBehaviorTracking();
   const { addToCart } = useCart();
+  const { formatCurrency } = useCurrency();
 
   const handleProductView = (product: any) => {
     trackProductView(product.id, product.name, '/');
@@ -20,14 +22,6 @@ export function PopularProducts() {
   const handleAddToCart = (product: any) => {
     addToCart(product);
     trackAddToCart(product.id, 1, product.price, '/');
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-    }).format(price);
   };
 
   const renderStars = (rating: number) => {
@@ -192,11 +186,11 @@ export function PopularProducts() {
                       {/* Price */}
                       <div className="flex items-center gap-2 mb-3">
                         <span className="font-black text-base text-primary">
-                          {formatPrice(product.price)}
+                          {formatCurrency(product.price)}
                         </span>
                         {product.originalPrice && product.originalPrice > product.price && (
                           <span className="text-sm text-muted-foreground line-through">
-                            {formatPrice(product.originalPrice)}
+                            {formatCurrency(product.originalPrice)}
                           </span>
                         )}
                       </div>

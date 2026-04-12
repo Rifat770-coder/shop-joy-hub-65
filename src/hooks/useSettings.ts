@@ -9,8 +9,8 @@ const defaultStoreSettings: StoreSettings = {
   storeEmail: 'support@realgadgetbd.com',
   storePhone: '+1 (555) 123-4567',
   storeAddress: '123 Commerce Street, New York, NY 10001',
-  currency: 'USD',
-  timezone: 'America/New_York',
+  currency: 'BDT',
+  timezone: 'Asia/Dhaka',
   showFlashSale: true,
 };
 

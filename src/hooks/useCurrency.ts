@@ -12,7 +12,7 @@ export function useCurrency() {
     try {
       return new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency: storeSettings.currency || 'USD',
+        currency: storeSettings.currency || 'BDT',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(amount);
@@ -22,5 +22,5 @@ export function useCurrency() {
     }
   };
 
-  return { formatCurrency, currency: storeSettings.currency || 'USD' };
+  return { formatCurrency, currency: storeSettings.currency || 'BDT' };
 }

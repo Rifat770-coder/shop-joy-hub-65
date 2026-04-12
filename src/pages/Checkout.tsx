@@ -68,7 +68,7 @@ const Checkout = () => {
     try {
       return new Intl.NumberFormat(undefined, {
         style: 'currency',
-        currency: storeSettings.currency || 'USD',
+        currency: storeSettings.currency || 'BDT',
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       }).format(amount);
