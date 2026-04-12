@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+ import { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, User, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -46,137 +46,56 @@ const Auth = () => {
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
-
     if (isResetRequestMode) {
-      try {
-        emailSchema.parse(email);
-      } catch (e) {
-        if (e instanceof z.ZodError) {
-          newErrors.email = e.errors[0].message;
-        }
-      }
+      try { emailSchema.parse(email); } catch (e) { if (e instanceof z.ZodError) newErrors.email = e.errors[0].message; }
     } else if (isRecoveryMode) {
-      try {
-        passwordSchema.parse(password);
-      } catch (e) {
-        if (e instanceof z.ZodError) {
-          newErrors.password = e.errors[0].message;
-        }
-      }
-
-      if (password !== confirmPassword) {
-        newErrors.password = 'Passwords do not match';
-      }
+      try { passwordSchema.parse(password); } catch (e) { if (e instanceof z.ZodError) newErrors.password = e.errors[0].message; }
+      if (password !== confirmPassword) newErrors.password = 'Passwords do not match';
     } else {
-      try {
-        emailSchema.parse(email);
-      } catch (e) {
-        if (e instanceof z.ZodError) {
-          newErrors.email = e.errors[0].message;
-        }
-      }
-
-      try {
-        passwordSchema.parse(password);
-      } catch (e) {
-        if (e instanceof z.ZodError) {
-          newErrors.password = e.errors[0].message;
-        }
-      }
+      try { emailSchema.parse(email); } catch (e) { if (e instanceof z.ZodError) newErrors.email = e.errors[0].message; }
+      try { passwordSchema.parse(password); } catch (e) { if (e instanceof z.ZodError) newErrors.password = e.errors[0].message; }
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     setIsLoading(true);
-
     try {
       if (isRecoveryMode) {
         if (!recoveryUserId || !recoverySecret) {
-          toast({
-            title: 'Invalid recovery link',
-            description: 'Please request a new password reset link.',
-            variant: 'destructive',
-          });
+          toast({ title: 'Invalid recovery link', description: 'Please request a new password reset link.', variant: 'destructive' });
           return;
         }
-
-        await account.updateRecovery(recoveryUserId, recoverySecret, password, confirmPassword);
-        toast({
-          title: 'Password updated',
-          description: 'You can now sign in with your new password.',
-        });
-        setPassword('');
-        setConfirmPassword('');
-        setIsResetMode(false);
-        navigate('/auth');
+        await account.updateRecovery(recoveryUserId, recoverySecret, password);
+        toast({ title: 'Password updated', description: 'You can now sign in with your new password.' });
+        setPassword(''); setConfirmPassword(''); setIsResetMode(false); navigate('/auth');
         return;
       }
-
       if (isResetRequestMode) {
         const recoveryUrl = new URL(`${window.location.origin}/auth`);
         recoveryUrl.searchParams.set('mode', 'recovery');
         await account.createRecovery(email.trim(), recoveryUrl.toString());
-        toast({
-          title: 'Reset link sent',
-          description: 'Check your email for the password reset link.',
-        });
-        setEmail('');
-        setIsResetMode(false);
-        navigate('/auth');
+        toast({ title: 'Reset link sent', description: 'Check your email for the password reset link.' });
+        setEmail(''); setIsResetMode(false); navigate('/auth');
         return;
       }
-
       if (isLogin) {
         const { error } = await signIn(email, password);
         if (error) {
-          if (error.message.includes('Invalid login credentials')) {
-            toast({
-              title: 'Login failed',
-              description: 'Invalid email or password. Please try again.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Login failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
+          toast({ title: 'Login failed', description: error.message.includes('Invalid login credentials') ? 'Invalid email or password. Please try again.' : error.message, variant: 'destructive' });
         } else {
-          toast({
-            title: 'Welcome back!',
-            description: 'You have successfully logged in.',
-          });
+          toast({ title: 'Welcome back!', description: 'You have successfully logged in.' });
           navigate('/');
         }
       } else {
         const { error } = await signUp(email, password, fullName);
         if (error) {
-          if (error.message.includes('User already registered')) {
-            toast({
-              title: 'Account exists',
-              description: 'An account with this email already exists. Please log in instead.',
-              variant: 'destructive',
-            });
-          } else {
-            toast({
-              title: 'Signup failed',
-              description: error.message,
-              variant: 'destructive',
-            });
-          }
+          toast({ title: error.message.includes('User already registered') ? 'Account exists' : 'Signup failed', description: error.message.includes('User already registered') ? 'An account with this email already exists. Please log in instead.' : error.message, variant: 'destructive' });
         } else {
-          toast({
-            title: 'Account created!',
-            description: 'Welcome to RealGadget BD! You can now start shopping.',
-          });
+          toast({ title: 'Account created!', description: 'Welcome to RealGadget BD! You can now start shopping.' });
           navigate('/profile?setup=1');
         }
       }
@@ -187,247 +106,144 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex animate-fade-in">
-      {/* Left Side - Form */}
-      <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 xl:px-24 transition-all duration-500 ease-in-out animate-slide-in-left">
+      {/* Form side — dark navy on mobile only */}
+      <div className="flex-1 flex flex-col justify-center px-8 lg:px-16 xl:px-24 bg-[#0d1117] sm:bg-background">
         <div className="max-w-md w-full mx-auto">
-          <Link
-            to="/"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-all duration-200 hover:translate-x-1"
-          >
-            <ArrowLeft className="h-4 w-4 transition-transform duration-200 group-hover:-translate-x-1" />
+
+          <Link to="/" className="inline-flex items-center gap-2 mb-10 text-slate-500 sm:text-muted-foreground hover:text-slate-300 sm:hover:text-foreground transition-colors text-sm">
+            <ArrowLeft className="h-4 w-4" />
             Back to store
           </Link>
 
-          <div className="mb-8 animate-fade-in">
-            <Link to="/" className="flex items-center gap-2 mb-6 hover:scale-105 transition-transform duration-200">
-              <img
-                src="/2.png"
-                alt="RealGadget BD"
-                className="h-10 w-10 rounded-lg object-contain"
-              />
-              <span className="text-2xl font-bold">
+          <div className="mb-8">
+            <Link to="/" className="flex items-center gap-3 mb-8">
+              {/* Shopping bag icon — matches the image exactly on mobile */}
+              <div className="h-11 w-11 rounded-xl bg-slate-800 sm:hidden flex items-center justify-center border border-slate-700">
+                <svg className="h-6 w-6 text-white" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+              </div>
+              {/* Original logo — desktop only */}
+              <img src="/2.png" alt="RealGadget BD" className="h-10 w-10 rounded-lg object-contain hidden sm:block" />
+              <span className="text-2xl font-bold text-white sm:text-foreground">
                 RealGadget <span className="text-primary">BD</span>
               </span>
             </Link>
-            <h1 className="text-3xl font-bold animate-slide-up">
-              {isRecoveryMode
-                ? 'Reset your password'
-                : isResetRequestMode
-                  ? 'Forgot password'
-                  : isLogin
-                    ? 'Welcome back'
-                    : 'Create account'}
+            <h1 className="text-[1.85rem] font-black text-white sm:text-foreground leading-tight">
+              {isRecoveryMode ? 'Reset your password' : isResetRequestMode ? 'Forgot password' : isLogin ? 'Welcome back' : 'Create account'}
             </h1>
-            <p className="text-muted-foreground mt-2 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-              {isRecoveryMode
-                ? 'Enter a new password for your account'
-                : isResetRequestMode
-                  ? 'We will send a reset link to your email'
-                  : isLogin
-                    ? 'Enter your credentials to access your account'
-                    : 'Sign up to start shopping with us'}
+            <p className="mt-2 text-slate-500 sm:text-muted-foreground text-sm">
+              {isRecoveryMode ? 'Enter a new password for your account' : isResetRequestMode ? 'We will send a reset link to your email' : isLogin ? 'Enter your credentials to access your account' : 'Sign up to start shopping with us'}
             </p>
           </div>
 
-          <form 
-            key={isLogin ? 'login' : 'signup'} 
-            onSubmit={handleSubmit} 
-            className="space-y-5 animate-slide-up" 
-            style={{ animationDelay: '0.2s' }}
-          >
+          <form key={isLogin ? 'login' : 'signup'} onSubmit={handleSubmit} className="space-y-5">
             {!isLogin && !isResetRequestMode && !isRecoveryMode && (
-              <div className="space-y-2 animate-slide-in-left">
-                <Label htmlFor="fullName">Full Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-slate-400 sm:text-foreground text-sm font-medium">Full Name</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="John Doe"
-                    value={fullName}
+                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 sm:text-muted-foreground" />
+                  <Input id="fullName" type="text" placeholder="John Doe" value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="pl-10 transition-all duration-200 focus:scale-[1.02] hover:shadow-md"
-                  />
+                    className="pl-10 bg-[#1a2235] border-[#2a3550] text-white placeholder:text-slate-600 rounded-xl h-12 sm:bg-background sm:border-border sm:text-foreground sm:placeholder:text-muted-foreground sm:rounded-md sm:h-10" />
                 </div>
               </div>
             )}
 
             {!isRecoveryMode && (
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
+                <Label htmlFor="email" className="text-slate-400 sm:text-foreground text-sm font-medium">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value);
-                      setErrors((prev) => ({ ...prev, email: undefined }));
-                    }}
-                    className={`pl-10 transition-all duration-200 focus:scale-[1.02] hover:shadow-md ${errors.email ? 'border-destructive animate-shake' : ''}`}
-                  />
+                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 sm:text-muted-foreground" />
+                  <Input id="email" type="email" placeholder="you@example.com" value={email}
+                    onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: undefined })); }}
+                    className={`pl-10 bg-[#1a2235] border-[#2a3550] text-white placeholder:text-slate-600 rounded-xl h-12 sm:bg-background sm:border-border sm:text-foreground sm:placeholder:text-muted-foreground sm:rounded-md sm:h-10 ${errors.email ? 'border-destructive' : ''}`} />
                 </div>
-                {errors.email && (
-                  <p className="text-sm text-destructive animate-slide-in-left">{errors.email}</p>
-                )}
+                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
               </div>
             )}
 
             {!isResetRequestMode && (
               <div className="space-y-2">
-                <Label htmlFor="password">{isRecoveryMode ? 'New Password' : 'Password'}</Label>
+                <Label htmlFor="password" className="text-slate-400 sm:text-foreground text-sm font-medium">{isRecoveryMode ? 'New Password' : 'Password'}</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200" />
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => {
-                      setPassword(e.target.value);
-                      setErrors((prev) => ({ ...prev, password: undefined }));
-                    }}
-                    className={`pl-10 pr-10 transition-all duration-200 focus:scale-[1.02] hover:shadow-md ${errors.password ? 'border-destructive animate-shake' : ''}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="h-4 w-4" />
-                    ) : (
-                      <Eye className="h-4 w-4" />
-                    )}
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 sm:text-muted-foreground" />
+                  <Input id="password" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password}
+                    onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                    className={`pl-10 pr-10 bg-[#1a2235] border-[#2a3550] text-white placeholder:text-slate-600 rounded-xl h-12 sm:bg-background sm:border-border sm:text-foreground sm:placeholder:text-muted-foreground sm:rounded-md sm:h-10 ${errors.password ? 'border-destructive' : ''}`} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 sm:text-muted-foreground hover:text-slate-300 sm:hover:text-foreground">
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="text-sm text-destructive animate-slide-in-left">{errors.password}</p>
-                )}
+                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
               </div>
             )}
 
             {isRecoveryMode && (
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Label htmlFor="confirmPassword" className="text-slate-400 sm:text-foreground text-sm font-medium">Confirm Password</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground transition-colors duration-200" />
-                  <Input
-                    id="confirmPassword"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      setErrors((prev) => ({ ...prev, password: undefined }));
-                    }}
-                    className={`pl-10 transition-all duration-200 focus:scale-[1.02] hover:shadow-md ${errors.password ? 'border-destructive animate-shake' : ''}`}
-                  />
+                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500 sm:text-muted-foreground" />
+                  <Input id="confirmPassword" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={confirmPassword}
+                    onChange={(e) => { setConfirmPassword(e.target.value); setErrors((p) => ({ ...p, password: undefined })); }}
+                    className={`pl-10 bg-[#1a2235] border-[#2a3550] text-white placeholder:text-slate-600 rounded-xl h-12 sm:bg-background sm:border-border sm:text-foreground sm:rounded-md sm:h-10 ${errors.password ? 'border-destructive' : ''}`} />
                 </div>
               </div>
             )}
 
             {isLogin && !isResetRequestMode && !isRecoveryMode && (
               <div className="text-right">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsResetMode(true);
-                    setErrors({});
-                    setPassword('');
-                    setConfirmPassword('');
-                    navigate('/auth?mode=reset');
-                  }}
-                  className="text-sm text-primary hover:underline"
-                >
+                <button type="button" onClick={() => { setIsResetMode(true); setErrors({}); setPassword(''); setConfirmPassword(''); navigate('/auth?mode=reset'); }}
+                  className="text-sm text-primary hover:underline">
                   Forgot password?
                 </button>
               </div>
             )}
 
-            <Button
-              type="submit"
-              variant="hero"
-              size="lg"
-              className="w-full relative overflow-hidden"
-              disabled={isLoading}
-            >
+            <Button type="submit" variant="hero" size="lg"
+              className="w-full relative overflow-hidden sm:h-10 h-12 sm:rounded-md rounded-xl text-base font-bold"
+              disabled={isLoading}>
               {isLoading && (
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-orange-700 flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 </div>
               )}
-              <span className={`transition-opacity duration-200 ${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                {isRecoveryMode
-                  ? 'Reset Password'
-                  : isResetRequestMode
-                    ? 'Send Reset Link'
-                    : isLogin
-                      ? 'Sign In'
-                      : 'Create Account'}
+              <span className={isLoading ? 'opacity-0' : 'opacity-100'}>
+                {isRecoveryMode ? 'Reset Password' : isResetRequestMode ? 'Send Reset Link' : isLogin ? 'Sign In' : 'Create Account'}
               </span>
             </Button>
           </form>
 
-          <div className="mt-6 text-center animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <p className="text-muted-foreground">
+          <div className="mt-6 text-center">
+            <p className="text-slate-500 sm:text-muted-foreground text-sm">
               {isRecoveryMode || isResetRequestMode ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsResetMode(false);
-                    setIsLogin(true);
-                    setErrors({});
-                    setEmail('');
-                    setPassword('');
-                    setConfirmPassword('');
-                    navigate('/auth');
-                  }}
-                  className="text-primary hover:underline font-medium transition-all duration-200 hover:scale-105 inline-block"
-                >
+                <button type="button" onClick={() => { setIsResetMode(false); setIsLogin(true); setErrors({}); setEmail(''); setPassword(''); setConfirmPassword(''); navigate('/auth'); }}
+                  className="text-primary hover:underline font-medium">
                   Back to sign in
                 </button>
               ) : (
                 <>
                   {isLogin ? "Don't have an account?" : 'Already have an account?'}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsLogin(!isLogin);
-                      setErrors({});
-                      setEmail('');
-                      setPassword('');
-                      setConfirmPassword('');
-                      setFullName('');
-                    }}
-                    className="ml-1 text-primary hover:underline font-medium transition-all duration-200 hover:scale-105 inline-block"
-                  >
+                  <button type="button" onClick={() => { setIsLogin(!isLogin); setErrors({}); setEmail(''); setPassword(''); setConfirmPassword(''); setFullName(''); }}
+                    className="ml-1 text-primary hover:underline font-semibold">
                     {isLogin ? 'Sign up' : 'Sign in'}
                   </button>
                 </>
               )}
             </p>
           </div>
+
         </div>
       </div>
 
-      {/* Right Side - Image */}
-      <div className="hidden lg:block lg:w-1/2 relative animate-slide-in-right">
-        <img
-          src="/2.png"
-          alt="RealGadget BD"
-          className="w-full h-full object-cover"
-        />
+      {/* Right side — desktop only, zero change */}
+      <div className="hidden lg:block lg:w-1/2 relative">
+        <img src="/2.png" alt="RealGadget BD" className="w-full h-full object-cover" />
         <div className="absolute inset-0 flex items-start justify-center p-12 pt-16">
-          <div className="text-center text-primary-foreground max-w-md animate-slide-up" style={{ animationDelay: '0.5s' }}>
-            <h2 className="text-4xl font-bold mb-4">
-              Shop the Best Deals
-            </h2>
-            <p className="text-lg opacity-90">
-              Join thousands of happy customers and discover amazing products at unbeatable prices.
-            </p>
+          <div className="text-center text-primary-foreground max-w-md">
+            <h2 className="text-4xl font-bold mb-4">Shop the Best Deals</h2>
+            <p className="text-lg opacity-90">Join thousands of happy customers and discover amazing products at unbeatable prices.</p>
           </div>
         </div>
       </div>

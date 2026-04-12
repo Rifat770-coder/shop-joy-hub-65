@@ -1,10 +1,5 @@
 import { useSettings } from '@/hooks/useSettings';
 
-/**
- * Returns a formatCurrency function that formats a number using
- * the currency code configured in the admin Store Information settings.
- * Uses Intl.NumberFormat for proper symbol, grouping, and decimal handling.
- */
 export function useCurrency() {
   const { storeSettings } = useSettings();
 
@@ -17,8 +12,7 @@ export function useCurrency() {
         maximumFractionDigits: 2,
       }).format(amount);
     } catch {
-      // Fallback if the currency code is invalid
-      return `${storeSettings.currency || '$'} ${amount.toFixed(2)}`;
+      return `${storeSettings.currency || 'BDT'} ${amount.toFixed(2)}`;
     }
   };
 
