@@ -366,6 +366,7 @@ const Checkout = () => {
       }
 
       // Try to send order confirmation email (non-blocking, silent failure)
+      let emailSentSuccessfully = true;
       try {
         const orderItemsForEmail = items.map((item) => ({
           product: {
@@ -377,15 +378,9 @@ const Checkout = () => {
           quantity: item.quantity,
         }));
 
-<<<<<<< Updated upstream
-        // Fire and forget - don't wait for email result
-        supabase.functions.invoke('send-order-confirmation', {
-          body: {
-=======
         const emailResponse = await functions.createExecution(
           'send-order-confirmation',
           JSON.stringify({
->>>>>>> Stashed changes
             orderId: data.orderId,
             customerEmail: shippingForm.email,
             customerName: shippingForm.fullName,
@@ -398,12 +393,6 @@ const Checkout = () => {
             shippingMethodName: selectedShippingOption?.name || 'Standard',
             total: data.total,
             shippingAddress: shippingAddress,
-<<<<<<< Updated upstream
-          },
-        }).catch((emailError) => {
-          console.warn('Email sending failed:', emailError);
-        });
-=======
           })
         );
 
@@ -412,7 +401,6 @@ const Checkout = () => {
           console.warn('Email sending failed:', emailResult.error || 'Unknown email error');
           emailSentSuccessfully = false;
         }
->>>>>>> Stashed changes
       } catch (emailError) {
         console.warn('Email sending failed:', emailError);
       }
@@ -421,18 +409,6 @@ const Checkout = () => {
       setStep('confirmation');
       clearCart();
 
-<<<<<<< Updated upstream
-      toast({
-        title: 'Order placed successfully!',
-        description: 'Thank you for your order. You can track it in Order History.',
-      });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to place order. Please try again.',
-        variant: 'destructive',
-      });
-=======
       if (emailSentSuccessfully) {
         toast({
           title: 'Order placed successfully!',
@@ -465,7 +441,6 @@ const Checkout = () => {
           variant: 'destructive',
         });
       }
->>>>>>> Stashed changes
     } finally {
       setIsSubmitting(false);
     }
