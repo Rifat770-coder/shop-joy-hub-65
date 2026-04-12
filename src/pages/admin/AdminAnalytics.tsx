@@ -36,7 +36,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 
 interface Order {
   id: string;
@@ -44,6 +44,7 @@ interface Order {
   status: string;
   created_at: string;
   user_id: string;
+  items?: unknown;
 }
 
 interface Profile {
@@ -67,15 +68,27 @@ export default function AdminAnalytics() {
     setLoading(true);
     try {
       const [ordersRes, profilesRes] = await Promise.all([
-        supabase.from('orders').select('id, total, status, created_at, user_id').order('created_at', { ascending: true }),
-        supabase.from('profiles').select('id, created_at').order('created_at', { ascending: true }),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES),
       ]);
 
-      if (ordersRes.error) throw ordersRes.error;
-      if (profilesRes.error) throw profilesRes.error;
+      // Transform Appwrite documents to match expected format
+      const orders = ordersRes.documents.map(doc => ({
+        id: doc.$id,
+        total: doc.total,
+        status: doc.status,
+        created_at: doc.$createdAt,
+        user_id: doc.userId,
+        items: doc.items,
+      }));
 
-      setOrders(ordersRes.data || []);
-      setProfiles(profilesRes.data || []);
+      const profiles = profilesRes.documents.map(doc => ({
+        id: doc.$id,
+        created_at: doc.$createdAt,
+      }));
+
+      setOrders(orders);
+      setProfiles(profiles);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
     } finally {
@@ -92,6 +105,28 @@ export default function AdminAnalytics() {
 
   const filteredOrders = useMemo(() => filterByTimeRange(orders), [orders, timeRange]);
   const filteredProfiles = useMemo(() => filterByTimeRange(profiles), [profiles, timeRange]);
+
+  const previousPeriod = useMemo(() => {
+    const days = parseInt(timeRange);
+    const now = new Date();
+    const currentStart = new Date(now);
+    currentStart.setDate(currentStart.getDate() - days);
+
+    const previousStart = new Date(currentStart);
+    previousStart.setDate(previousStart.getDate() - days);
+
+    const previousOrders = orders.filter((order) => {
+      const created = new Date(order.created_at);
+      return created >= previousStart && created < currentStart;
+    });
+
+    const previousProfiles = profiles.filter((profile) => {
+      const created = new Date(profile.created_at);
+      return created >= previousStart && created < currentStart;
+    });
+
+    return { previousOrders, previousProfiles };
+  }, [orders, profiles, timeRange]);
 
   // Revenue over time
   const revenueData = useMemo(() => {
@@ -135,11 +170,79 @@ export default function AdminAnalytics() {
     }));
   }, [filteredOrders]);
 
+  const customerInsights = useMemo(() => {
+    const total = filteredOrders.length;
+    const orderCountByUser = filteredOrders.reduce<Record<string, number>>((acc, order) => {
+      if (!order.user_id) return acc;
+      acc[order.user_id] = (acc[order.user_id] || 0) + 1;
+      return acc;
+    }, {});
+
+    const returningCustomers = Object.values(orderCountByUser).filter((count) => count > 1).length;
+    const activeCustomers = Object.keys(orderCountByUser).length;
+    const newCustomers = Math.max(0, activeCustomers - returningCustomers);
+
+    return {
+      activeCustomers,
+      returningCustomers,
+      newCustomers,
+      returningRate: activeCustomers > 0 ? (returningCustomers / activeCustomers) * 100 : 0,
+      avgOrdersPerCustomer: activeCustomers > 0 ? total / activeCustomers : 0,
+    };
+  }, [filteredOrders]);
+
+  const productPerformance = useMemo(() => {
+    const aggregate = new Map<string, { name: string; quantity: number; revenue: number }>();
+
+    filteredOrders.forEach((order) => {
+      const rawItems = order.items;
+      let items: Array<{ product?: { id?: string; name?: string; price?: number }; quantity?: number }> = [];
+
+      if (Array.isArray(rawItems)) {
+        items = rawItems as Array<{ product?: { id?: string; name?: string; price?: number }; quantity?: number }>;
+      } else if (typeof rawItems === 'string') {
+        try {
+          const parsed = JSON.parse(rawItems);
+          if (Array.isArray(parsed)) {
+            items = parsed as Array<{ product?: { id?: string; name?: string; price?: number }; quantity?: number }>;
+          }
+        } catch {
+          items = [];
+        }
+      }
+
+      items.forEach((item) => {
+        const productId = item.product?.id;
+        if (!productId) return;
+
+        const quantity = Number(item.quantity || 0);
+        const price = Number(item.product?.price || 0);
+        const name = item.product?.name || 'Unknown Product';
+
+        const current = aggregate.get(productId) || { name, quantity: 0, revenue: 0 };
+        aggregate.set(productId, {
+          name,
+          quantity: current.quantity + quantity,
+          revenue: current.revenue + quantity * price,
+        });
+      });
+    });
+
+    return Array.from(aggregate.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+  }, [filteredOrders]);
+
   // Stats calculations
   const totalRevenue = filteredOrders.reduce((sum, o) => sum + Number(o.total), 0);
   const totalOrders = filteredOrders.length;
   const totalCustomers = filteredProfiles.length;
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+
+  const previousRevenue = previousPeriod.previousOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const previousOrdersCount = previousPeriod.previousOrders.length;
+  const previousCustomersCount = previousPeriod.previousProfiles.length;
+  const previousAvgOrderValue = previousOrdersCount > 0 ? previousRevenue / previousOrdersCount : 0;
 
   // Calculate trends (compare to previous period)
   const calculateTrend = (current: number, previous: number) => {
@@ -152,28 +255,28 @@ export default function AdminAnalytics() {
       title: 'Total Revenue',
       value: `$${totalRevenue.toFixed(2)}`,
       icon: DollarSign,
-      trend: 12.5,
+      trend: calculateTrend(totalRevenue, previousRevenue),
       color: 'text-success',
     },
     {
       title: 'Total Orders',
       value: totalOrders.toString(),
       icon: ShoppingCart,
-      trend: 8.2,
+      trend: calculateTrend(totalOrders, previousOrdersCount),
       color: 'text-primary',
     },
     {
       title: 'New Customers',
       value: totalCustomers.toString(),
       icon: Users,
-      trend: 15.3,
+      trend: calculateTrend(totalCustomers, previousCustomersCount),
       color: 'text-info',
     },
     {
       title: 'Avg Order Value',
       value: `$${avgOrderValue.toFixed(2)}`,
       icon: Package,
-      trend: -2.4,
+      trend: calculateTrend(avgOrderValue, previousAvgOrderValue),
       color: 'text-warning',
     },
   ];
@@ -274,6 +377,8 @@ export default function AdminAnalytics() {
             <TabsTrigger value="orders">Orders</TabsTrigger>
             <TabsTrigger value="customers">Customers</TabsTrigger>
             <TabsTrigger value="status">Order Status</TabsTrigger>
+            <TabsTrigger value="customer-insights">Customer Insights</TabsTrigger>
+            <TabsTrigger value="products">Product Performance</TabsTrigger>
           </TabsList>
 
           <TabsContent value="revenue">
@@ -468,6 +573,82 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="customer-insights">
+            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">Active Customers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{customerInsights.activeCustomers}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">New Customers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{customerInsights.newCustomers}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">Returning Customers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{customerInsights.returningCustomers}</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">Retention Snapshot</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{customerInsights.returningRate.toFixed(1)}%</p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm text-muted-foreground">Orders per Customer</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold">{customerInsights.avgOrdersPerCustomer.toFixed(2)}</p>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="products">
+            <Card>
+              <CardHeader>
+                <CardTitle>Top Product Performance</CardTitle>
+                <CardDescription>Revenue and quantity contribution by product</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {productPerformance.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground">
+                    No product sales data available for this period
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {productPerformance.map((product) => (
+                      <div
+                        key={product.name}
+                        className="flex items-center justify-between rounded-lg border border-border p-3"
+                      >
+                        <div>
+                          <p className="font-medium">{product.name}</p>
+                          <p className="text-sm text-muted-foreground">{product.quantity} units sold</p>
+                        </div>
+                        <p className="font-semibold">${product.revenue.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

@@ -1,73 +1,109 @@
-# Welcome to your Lovable project
+# Shop Joy Hub
 
-## Project info
+Shop Joy Hub is a React + TypeScript e-commerce storefront and admin dashboard powered by Appwrite.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## Tech Stack
 
-## How can I edit this code?
+- Vite
+- React 18
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Appwrite (Auth, Database, Functions, Realtime)
 
-There are several ways of editing your application.
+## Prerequisites
 
-**Use Lovable**
+- Node.js 18+
+- npm 9+
+- Appwrite project (Cloud or self-hosted)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## Getting Started
 
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+1. Install dependencies:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+npm install
+```
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+2. Create local environment file:
 
-# Step 3: Install the necessary dependencies.
-npm i
+```sh
+cp .env.example .env
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+3. Fill in `.env` with your Appwrite details.
+
+4. Start the app:
+
+```sh
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## Environment Variables
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Required variables are documented in `.env.example`:
 
-**Use GitHub Codespaces**
+- `VITE_APPWRITE_PROJECT_ID`
+- `VITE_APPWRITE_ENDPOINT`
+- `VITE_APPWRITE_DATABASE_ID`
+- `VITE_ADMIN_EMAILS`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+Never commit real environment values.
 
-## What technologies are used for this project?
+## Available Scripts
 
-This project is built with:
+- `npm run dev` starts Vite dev server
+- `npm run build` builds production bundle
+- `npm run build:dev` builds with development mode
+- `npm run preview` previews production build
+- `npm run lint` runs ESLint
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Appwrite Setup
 
-## How can I deploy this project?
+The project uses these collections:
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+- `profiles`
+- `orders`
+- `favorites`
+- `reviews`
+- `products`
+- `coupons`
+- `store_settings`
+- `user_roles`
 
-## Can I connect a custom domain to my Lovable project?
+Use the setup scripts in `scripts/` to bootstrap project data.
 
-Yes, you can!
+1. Setup project resources:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```sh
+cd scripts
+npm install
+node setup-appwrite.js
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+2. Seed sample products:
+
+```sh
+node seed-products.js
+```
+
+## Appwrite Functions
+
+This app depends on these functions:
+
+- `create-order`
+- `validate-coupon`
+- `send-order-confirmation`
+
+Ensure functions are deployed before relying on checkout in production.
+
+## Migration Notes
+
+The Supabase to Appwrite migration guide is available in `APPWRITE_MIGRATION.md`.
+
+## Deployment Checklist
+
+1. Configure production environment variables.
+2. Confirm Appwrite collection permissions are correct.
+3. Deploy Appwrite functions.
+4. Run `npm run build` and verify the preview locally.

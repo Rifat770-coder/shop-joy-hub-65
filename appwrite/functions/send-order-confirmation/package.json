@@ -1,0 +1,7 @@
+{
+  "name": "send-order-confirmation",
+  "version": "1.0.0",
+  "description": "Send order confirmation email",
+  "main": "src/main.js",
+  "type": "module"
+}

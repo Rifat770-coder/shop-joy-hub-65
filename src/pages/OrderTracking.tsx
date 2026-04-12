@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, realtime, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { addDays, format } from 'date-fns';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface OrderItem {
   product: {
@@ -34,11 +35,71 @@ interface Order {
   items: OrderItem[];
   total: number;
   status: string;
+  payment_method: string;
+  payment_status: string;
+  refunded_amount: number;
+  refund_reason: string;
   shipping_address: string;
   shipping_method: ShippingMethod | null;
   created_at: string;
   updated_at: string;
 }
+
+const normalizeOrder = (raw: Record<string, unknown>): Order => {
+  const rawItems = raw.items;
+  let parsedItems: OrderItem[] = [];
+
+  if (Array.isArray(rawItems)) {
+    parsedItems = rawItems as OrderItem[];
+  } else if (typeof rawItems === 'string') {
+    try {
+      const candidate = JSON.parse(rawItems);
+      if (Array.isArray(candidate)) {
+        parsedItems = candidate as OrderItem[];
+      }
+    } catch {
+      parsedItems = [];
+    }
+  }
+
+  const rawShippingMethod =
+    (raw.shipping_method as ShippingMethod | string | null | undefined) ??
+    (raw.shippingMethod as ShippingMethod | string | null | undefined);
+
+  let shippingMethod: ShippingMethod | null = null;
+  if (rawShippingMethod && typeof rawShippingMethod === 'object') {
+    shippingMethod = rawShippingMethod as ShippingMethod;
+  } else if (typeof rawShippingMethod === 'string') {
+    try {
+      shippingMethod = JSON.parse(rawShippingMethod) as ShippingMethod;
+    } catch {
+      shippingMethod = null;
+    }
+  }
+
+  return {
+    id: (raw.$id as string) || (raw.id as string),
+    items: parsedItems,
+    total: Number(raw.total || 0),
+    status: (raw.status as string) || 'pending',
+    payment_method: ((raw.paymentMethod as string) || (raw.payment_method as string) || 'cod').toLowerCase(),
+    payment_status: ((raw.paymentStatus as string) || (raw.payment_status as string) || 'pending').toLowerCase(),
+    refunded_amount: Number((raw.refundedAmount as number) || (raw.refunded_amount as number) || 0),
+    refund_reason: (raw.refundReason as string) || (raw.refund_reason as string) || '',
+    shipping_address: (raw.shipping_address as string) || (raw.shippingAddress as string) || '',
+    shipping_method: shippingMethod,
+    created_at: (raw.created_at as string) || (raw.$createdAt as string) || new Date().toISOString(),
+    updated_at: (raw.updated_at as string) || (raw.$updatedAt as string) || new Date().toISOString(),
+  };
+};
+
+const paymentStatusColor: Record<string, string> = {
+  pending: 'bg-muted text-muted-foreground border-border',
+  authorized: 'bg-info/10 text-info border-info/30',
+  paid: 'bg-success/10 text-success border-success/30',
+  failed: 'bg-destructive/10 text-destructive border-destructive/30',
+  refunded: 'bg-warning/10 text-warning border-warning/30',
+};
 
 const statusSteps = ['pending', 'processing', 'shipped', 'delivered'];
 
@@ -76,6 +137,7 @@ const OrderTracking = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     const fetchOrder = async () => {
@@ -86,13 +148,11 @@ const OrderTracking = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-
-        if (error) throw error;
+        const data = (await databases.getDocument(
+          DATABASE_ID,
+          COLLECTIONS.ORDERS,
+          id
+        )) as unknown as Record<string, unknown>;
 
         if (!data) {
           setError('Order not found');
@@ -101,22 +161,15 @@ const OrderTracking = () => {
         }
 
         // Check if the order belongs to the current user
-        if (user && data.user_id !== user.id) {
+        const orderUserId = (data.userId as string) || (data.user_id as string);
+        if (user && orderUserId && orderUserId !== user.$id) {
           setError('You do not have permission to view this order');
           setLoading(false);
           return;
         }
 
-        const parsedOrder: Order = {
-          ...data,
-          items: Array.isArray(data.items)
-            ? (data.items as unknown as OrderItem[])
-            : [],
-          shipping_method: data.shipping_method as unknown as ShippingMethod | null,
-        };
-
-        setOrder(parsedOrder);
-      } catch (err: any) {
+        setOrder(normalizeOrder(data));
+      } catch (err) {
         console.error('Error fetching order:', err);
         setError('Failed to load order details');
       } finally {
@@ -131,25 +184,17 @@ const OrderTracking = () => {
   useEffect(() => {
     if (!id) return;
 
-    const channel = supabase
-      .channel(`order-${id}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `id=eq.${id}`,
-        },
-        (payload) => {
-          console.log('Order updated:', payload);
-          const updatedData = payload.new as any;
+    const subscription = realtime.subscribe(
+      `databases.${DATABASE_ID}.collections.${COLLECTIONS.ORDERS}.documents.${id}`,
+      (response) => {
+        if (response.events.includes('databases.*.collections.*.documents.*.update')) {
+          const updatedData = response.payload;
           setOrder((prev) => {
             if (!prev) return prev;
             return {
               ...prev,
               status: updatedData.status,
-              updated_at: updatedData.updated_at,
+              updated_at: updatedData.$updatedAt,
             };
           });
           toast({
@@ -157,11 +202,15 @@ const OrderTracking = () => {
             description: `Order status changed to ${statusConfig[updatedData.status]?.label || updatedData.status}`,
           });
         }
-      )
-      .subscribe();
+      }
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      if (typeof subscription === 'function') {
+        subscription();
+      } else if (subscription && typeof subscription.unsubscribe === 'function') {
+        subscription.unsubscribe();
+      }
     };
   }, [id]);
 
@@ -294,6 +343,20 @@ const OrderTracking = () => {
             </div>
           )}
 
+          <div className="mb-6">
+            <Badge
+              variant="outline"
+              className={paymentStatusColor[order.payment_status] || paymentStatusColor.pending}
+            >
+              Payment {order.payment_status} via {order.payment_method.toUpperCase()}
+            </Badge>
+            {order.payment_status === 'refunded' && order.refunded_amount > 0 && (
+              <p className="text-sm text-warning mt-2">
+                Refunded {formatCurrency(order.refunded_amount)}{order.refund_reason ? ` • ${order.refund_reason}` : ''}
+              </p>
+            )}
+          </div>
+
           {/* Status Timeline */}
           <div className="bg-card border border-border rounded-xl p-6 mb-6">
             <h2 className="text-lg font-semibold mb-6">Order Status</h2>
@@ -379,7 +442,7 @@ const OrderTracking = () => {
                       <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                     </div>
                     <p className="font-medium">
-                      ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                      {formatCurrency((item.product?.price || 0) * item.quantity)}
                     </p>
                   </div>
                 ))}
@@ -390,7 +453,7 @@ const OrderTracking = () => {
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Total</span>
                 <span className="text-xl font-bold text-primary">
-                  ${Number(order.total).toFixed(2)}
+                  {formatCurrency(Number(order.total))}
                 </span>
               </div>
             </div>
@@ -421,7 +484,7 @@ const OrderTracking = () => {
                     {order.shipping_method.price > 0 && (
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Shipping Cost</span>
-                        <span>${order.shipping_method.price.toFixed(2)}</span>
+                        <span>{formatCurrency(order.shipping_method.price)}</span>
                       </div>
                     )}
                   </>

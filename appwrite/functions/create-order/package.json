@@ -1,0 +1,10 @@
+{
+  "name": "create-order",
+  "version": "1.0.0",
+  "description": "Create order with validation and coupon support",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {
+    "node-appwrite": "^13.0.0"
+  }
+}

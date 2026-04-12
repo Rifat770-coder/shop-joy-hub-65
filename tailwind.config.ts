@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -18,7 +19,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Plus Jakarta Sans", "system-ui", "sans-serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -99,15 +100,69 @@ export default {
           to: { height: "0" },
         },
         shimmer: {
+          "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
+        },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+        "slide-up": {
+          "0%": { opacity: "0", transform: "translateY(20px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
+        },
+        "slide-in-left": {
+          "0%": { opacity: "0", transform: "translateX(-20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "slide-in-right": {
+          "0%": { opacity: "0", transform: "translateX(20px)" },
+          "100%": { opacity: "1", transform: "translateX(0)" },
+        },
+        "bounce-gentle": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-5px)" },
+        },
+        "pulse-glow": {
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(249, 115, 22, 0.7)" },
+          "50%": { boxShadow: "0 0 0 10px rgba(249, 115, 22, 0)" },
+        },
+        "gradient-shift": {
+          "0%, 100%": { backgroundPosition: "0% 50%" },
+          "50%": { backgroundPosition: "100% 50%" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "wiggle": {
+          "0%, 100%": { transform: "rotate(-3deg)" },
+          "50%": { transform: "rotate(3deg)" },
+        },
+        "heart-beat": {
+          "0%": { transform: "scale(1)" },
+          "14%": { transform: "scale(1.3)" },
+          "28%": { transform: "scale(1)" },
+          "42%": { transform: "scale(1.3)" },
+          "70%": { transform: "scale(1)" },
         },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         shimmer: "shimmer 2s infinite",
+        "fade-in": "fade-in 0.6s ease-out",
+        "slide-up": "slide-up 0.6s ease-out",
+        "slide-in-left": "slide-in-left 0.5s ease-out",
+        "slide-in-right": "slide-in-right 0.5s ease-out",
+        "bounce-gentle": "bounce-gentle 2s ease-in-out infinite",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "gradient-shift": "gradient-shift 4s ease-in-out infinite",
+        "float": "float 3s ease-in-out infinite",
+        "wiggle": "wiggle 1s ease-in-out infinite",
+        "heart-beat": "heart-beat 1s ease-in-out",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

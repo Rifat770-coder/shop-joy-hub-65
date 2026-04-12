@@ -1,103 +1,94 @@
 import { ArrowRight, Truck, Shield, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+
 export function HeroSection() {
-  return <section className="relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/10" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.1)_0%,transparent_50%)]" />
-      
-      <div className="container relative py-8 md:py-24 lg:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+  return (
+    <section className="relative bg-[#0f172a]">
+      <div className="container relative py-10 md:py-14 lg:py-20 overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-primary/10 rounded-full blur-[80px] pointer-events-none" />
+
+        <div className="relative grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Content */}
-          <div className="space-y-8 animate-fade-in">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium">
-              <span className="animate-pulse">🔥</span>
-              <span>Flash Sale - Up to 50% Off</span>
+          <div className="space-y-5 md:space-y-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/15 text-primary text-xs font-semibold border border-primary/25">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              Flash Sale — Up to 50% Off
             </div>
-            
-            <h1 className="text-2xl md:text-5xl lg:text-6xl font-bold leading-tight">
-              Discover Amazing
-              <span className="block text-gradient">Products Today</span>
+
+            <h1 className="text-[2rem] sm:text-[2.75rem] md:text-[3.25rem] lg:text-[3.75rem] font-black tracking-tight leading-[1.05] text-white">
+              Discover<br />
+              <span className="text-primary">Amazing</span> Products<br />
+              <span className="text-slate-300">Today</span>
             </h1>
-            
-            <p className="text-lg text-muted-foreground max-w-lg">
-              Shop from millions of products across all categories. Get the best deals with fast, reliable delivery right to your doorstep.
+
+            <p className="text-sm sm:text-base text-slate-400 leading-relaxed max-w-md">
+              Shop from thousands of quality gadgets and electronics. Fast delivery across Bangladesh with secure payment.
             </p>
-            
-            <div className="flex flex-wrap gap-4">
+
+            <div className="flex flex-wrap gap-3">
               <Link to="/products">
-                <Button variant="hero" size="xl" className="gap-2">
+                <Button size="lg" className="gap-2 px-6 h-11 text-sm font-bold rounded-lg shadow-lg shadow-primary/30">
                   Shop Now
-                  <ArrowRight className="h-5 w-5" />
+                  <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to="/deals">
-                <Button variant="outline" size="xl">
+                <Button variant="outline" size="lg" className="px-6 h-11 text-sm font-semibold rounded-lg border-slate-600 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-500 bg-transparent">
                   View Deals
                 </Button>
               </Link>
             </div>
 
             {/* Trust Badges */}
-            <div className="flex flex-wrap gap-6 pt-4">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Truck className="h-4 w-4 text-primary" />
+            <div className="flex flex-wrap gap-x-5 gap-y-2.5 pt-1">
+              {[
+                { icon: Truck, label: 'Free Shipping' },
+                { icon: Shield, label: 'Secure Payment' },
+                { icon: RefreshCw, label: 'Easy Returns' },
+              ].map(({ icon: Icon, label }) => (
+                <div key={label} className="flex items-center gap-2 text-xs text-slate-400">
+                  <Icon className="h-3.5 w-3.5 text-primary" />
+                  <span>{label}</span>
                 </div>
-                <span>Free Shipping</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <Shield className="h-4 w-4 text-primary" />
-                </div>
-                <span>Secure Payment</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <div className="p-2 rounded-full bg-primary/10">
-                  <RefreshCw className="h-4 w-4 text-primary" />
-                </div>
-                <span>Easy Returns</span>
-              </div>
+              ))}
             </div>
           </div>
 
           {/* Hero Image */}
-          <div className="relative animate-slide-up hidden md:block" style={{
-          animationDelay: '0.2s'
-        }}>
-            <div className="relative aspect-square max-w-lg mx-auto">
-              <div className="absolute inset-0 gradient-primary rounded-3xl rotate-6 opacity-20 blur-2xl" />
-              <div className="absolute inset-4 bg-gradient-to-br from-primary/20 to-primary/5 rounded-3xl" />
-              <img 
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=600&fit=crop&fm=webp&q=80" 
-                alt="Shopping" 
-                className="relative z-10 w-full h-full object-cover rounded-3xl shadow-xl"
-                fetchPriority="high"
+          <div className="relative px-4 sm:px-0">
+            <div className="relative aspect-square max-w-[17rem] sm:max-w-[22rem] lg:max-w-[28rem] mx-auto">
+              {/* Decorative ring */}
+              <div className="absolute inset-0 rounded-2xl ring-1 ring-white/10 shadow-2xl" />
+              <img
+                src="https://images.unsplash.com/photo-1511556820780-d912e42b4980?w=900&h=900&fit=crop&fm=webp&q=80"
+                alt="Premium products"
+                className="relative z-10 w-full h-full object-cover rounded-2xl"
+                fetchpriority="high"
                 decoding="async"
               />
-              
-              {/* Floating Cards */}
-              <div className="absolute -left-4 top-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce" style={{
-              animationDuration: '3s'
-            }}>
+              {/* Gradient overlay */}
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-primary/20 via-transparent to-transparent z-20 pointer-events-none" />
+
+              {/* Stat cards */}
+              <div className="absolute left-3 top-[32%] z-30 rounded-xl bg-white/95 backdrop-blur-sm px-3 py-2 shadow-xl border border-white/50">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">📦</span>
+                  <span className="text-xl">📦</span>
                   <div>
-                    <p className="text-xs text-muted-foreground">Orders</p>
-                    <p className="font-bold">10K+</p>
+                    <p className="text-[10px] text-slate-500 leading-none">Orders</p>
+                    <p className="font-black text-base text-slate-900 leading-tight">10K+</p>
                   </div>
                 </div>
               </div>
-              
-              <div style={{
-              animationDuration: '3.5s'
-            }} className="absolute right-4 bottom-1/4 bg-card p-4 rounded-xl shadow-lg animate-bounce">
+
+              <div className="absolute right-3 bottom-[22%] z-30 rounded-xl bg-white/95 backdrop-blur-sm px-3 py-2 shadow-xl border border-white/50">
                 <div className="flex items-center gap-2">
-                  <span className="text-2xl">⭐</span>
+                  <span className="text-xl">⭐</span>
                   <div>
-                    <p className="text-xs text-muted-foreground">Rating</p>
-                    <p className="font-bold">4.9/5</p>
+                    <p className="text-[10px] text-slate-500 leading-none">Rating</p>
+                    <p className="font-black text-base text-slate-900 leading-tight">4.9/5</p>
                   </div>
                 </div>
               </div>
@@ -105,5 +96,6 @@ export function HeroSection() {
           </div>
         </div>
       </div>
-    </section>;
+    </section>
+  );
 }

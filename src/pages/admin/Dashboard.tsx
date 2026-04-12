@@ -1,64 +1,47 @@
+import { useEffect, useMemo, useState } from 'react';
 import {
   DollarSign,
   ShoppingCart,
   Package,
   Users,
-  TrendingUp,
-  TrendingDown,
   ArrowUpRight,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { products } from '@/data/products';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 
-const stats = [
-  {
-    title: 'Total Revenue',
-    value: '$45,231.89',
-    change: '+20.1%',
-    trend: 'up',
-    icon: DollarSign,
-  },
-  {
-    title: 'Orders',
-    value: '356',
-    change: '+15.3%',
-    trend: 'up',
-    icon: ShoppingCart,
-  },
-  {
-    title: 'Products',
-    value: products.length.toString(),
-    change: '+12.5%',
-    trend: 'up',
-    icon: Package,
-  },
-  {
-    title: 'Customers',
-    value: '2,350',
-    change: '+8.2%',
-    trend: 'up',
-    icon: Users,
-  },
-];
+interface DashboardOrder {
+  $id: string;
+  total: number;
+  status: string;
+  userId?: string;
+  $createdAt: string;
+}
 
-const recentOrders = [
-  { id: 'ORD-001', customer: 'John Doe', total: '$299.99', status: 'Delivered' },
-  { id: 'ORD-002', customer: 'Jane Smith', total: '$149.50', status: 'Processing' },
-  { id: 'ORD-003', customer: 'Bob Johnson', total: '$89.99', status: 'Shipped' },
-  { id: 'ORD-004', customer: 'Alice Brown', total: '$459.00', status: 'Pending' },
-  { id: 'ORD-005', customer: 'Charlie Wilson', total: '$199.99', status: 'Delivered' },
-];
+interface DashboardProduct {
+  $id: string;
+  name: string;
+  category: string;
+  image?: string;
+  price: number;
+  stock: number;
+  reviews?: number;
+}
+
+interface DashboardProfile {
+  userId?: string;
+  fullName?: string;
+}
 
 const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Delivered':
+  switch (status.toLowerCase()) {
+    case 'delivered':
       return 'bg-success/10 text-success';
-    case 'Processing':
+    case 'processing':
       return 'bg-info/10 text-info';
-    case 'Shipped':
+    case 'shipped':
       return 'bg-warning/10 text-warning';
-    case 'Pending':
+    case 'pending':
       return 'bg-muted text-muted-foreground';
     default:
       return 'bg-muted text-muted-foreground';
@@ -66,6 +49,85 @@ const getStatusColor = (status: string) => {
 };
 
 export default function Dashboard() {
+  const [orders, setOrders] = useState<DashboardOrder[]>([]);
+  const [products, setProducts] = useState<DashboardProduct[]>([]);
+  const [profiles, setProfiles] = useState<DashboardProfile[]>([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [ordersRes, productsRes, profilesRes] = await Promise.all([
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS),
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.PRODUCTS),
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES),
+        ]);
+
+        setOrders(ordersRes.documents as unknown as DashboardOrder[]);
+        setProducts(productsRes.documents as unknown as DashboardProduct[]);
+        setProfiles(profilesRes.documents as unknown as DashboardProfile[]);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+        setOrders([]);
+        setProducts([]);
+        setProfiles([]);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  const stats = useMemo(() => {
+    const totalRevenue = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
+    return [
+      {
+        title: 'Total Revenue',
+        value: `$${totalRevenue.toFixed(2)}`,
+        icon: DollarSign,
+      },
+      {
+        title: 'Orders',
+        value: orders.length.toString(),
+        icon: ShoppingCart,
+      },
+      {
+        title: 'Products',
+        value: products.length.toString(),
+        icon: Package,
+      },
+      {
+        title: 'Customers',
+        value: profiles.length.toString(),
+        icon: Users,
+      },
+    ];
+  }, [orders, products, profiles]);
+
+  const profileNameByUserId = useMemo(() => {
+    return new Map(
+      profiles
+        .filter((profile) => profile.userId)
+        .map((profile) => [profile.userId as string, profile.fullName || 'Customer'])
+    );
+  }, [profiles]);
+
+  const recentOrders = useMemo(() => {
+    return [...orders]
+      .sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime())
+      .slice(0, 5)
+      .map((order) => ({
+        id: order.$id,
+        customer: order.userId ? profileNameByUserId.get(order.userId) || 'Customer' : 'Customer',
+        total: `$${Number(order.total || 0).toFixed(2)}`,
+        status: order.status || 'pending',
+      }));
+  }, [orders, profileNameByUserId]);
+
+  const topProducts = useMemo(() => {
+    return [...products]
+      .sort((a, b) => Number(b.reviews || 0) - Number(a.reviews || 0))
+      .slice(0, 5);
+  }, [products]);
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -91,21 +153,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="flex items-center gap-1 mt-1">
-                  {stat.trend === 'up' ? (
-                    <TrendingUp className="h-4 w-4 text-success" />
-                  ) : (
-                    <TrendingDown className="h-4 w-4 text-destructive" />
-                  )}
-                  <span
-                    className={`text-sm ${
-                      stat.trend === 'up' ? 'text-success' : 'text-destructive'
-                    }`}
-                  >
-                    {stat.change}
-                  </span>
-                  <span className="text-sm text-muted-foreground">from last month</span>
-                </div>
+                <div className="text-sm text-muted-foreground mt-1">Live data from Appwrite</div>
               </CardContent>
             </Card>
           ))}
@@ -123,13 +171,16 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
+                {recentOrders.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No real orders found.</p>
+                )}
                 {recentOrders.map((order) => (
                   <div
                     key={order.id}
                     className="flex items-center justify-between py-2 border-b border-border last:border-0"
                   >
                     <div>
-                      <p className="font-medium">{order.id}</p>
+                      <p className="font-medium">{order.id.slice(0, 8).toUpperCase()}</p>
                       <p className="text-sm text-muted-foreground">{order.customer}</p>
                     </div>
                     <div className="text-right">
@@ -139,7 +190,7 @@ export default function Dashboard() {
                           order.status
                         )}`}
                       >
-                        {order.status}
+                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                       </span>
                     </div>
                   </div>
@@ -159,13 +210,16 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {products.slice(0, 5).map((product) => (
+                {topProducts.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No real products found.</p>
+                )}
+                {topProducts.map((product) => (
                   <div
-                    key={product.id}
+                    key={product.$id}
                     className="flex items-center gap-4 py-2 border-b border-border last:border-0"
                   >
                     <img
-                      src={product.image}
+                      src={product.image || '/placeholder.svg'}
                       alt={product.name}
                       className="w-12 h-12 rounded-lg object-cover"
                     />

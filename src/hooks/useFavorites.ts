@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Favorite } from '@/integrations/appwrite/types';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
+import { Query, ID } from 'appwrite';
 
 export function useFavorites() {
   const [favorites, setFavorites] = useState<string[]>([]);
@@ -16,13 +18,14 @@ export function useFavorites() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('favorites')
-        .select('product_id')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      setFavorites(data.map((f) => f.product_id));
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.FAVORITES,
+        [Query.equal('userId', user.$id)]
+      );
+      
+      const favoriteProducts = response.documents.map((doc: Favorite) => doc.productId);
+      setFavorites(favoriteProducts);
     } catch (error) {
       console.error('Error fetching favorites:', error);
     } finally {
@@ -48,24 +51,40 @@ export function useFavorites() {
 
     try {
       if (isFavorite) {
-        const { error } = await supabase
-          .from('favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('product_id', productId);
+        // Find and delete the favorite
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.FAVORITES,
+          [
+            Query.equal('userId', user.$id),
+            Query.equal('productId', productId)
+          ]
+        );
 
-        if (error) throw error;
+        if (response.documents.length > 0) {
+          await databases.deleteDocument(
+            DATABASE_ID,
+            COLLECTIONS.FAVORITES,
+            response.documents[0].$id
+          );
+        }
+
         setFavorites((prev) => prev.filter((id) => id !== productId));
         toast({
           title: 'Removed from favorites',
           description: 'Product removed from your favorites.',
         });
       } else {
-        const { error } = await supabase
-          .from('favorites')
-          .insert({ user_id: user.id, product_id: productId });
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.FAVORITES,
+          ID.unique(),
+          {
+            userId: user.$id,
+            productId: productId,
+          }
+        );
 
-        if (error) throw error;
         setFavorites((prev) => [...prev, productId]);
         toast({
           title: 'Added to favorites',

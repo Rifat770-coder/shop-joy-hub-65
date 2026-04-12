@@ -1,0 +1,15 @@
+{
+  "name": "realgadgetbd-appwrite-setup",
+  "version": "1.0.0",
+  "description": "Setup and seeding scripts for RealGadget BD Appwrite project",
+  "type": "module",
+  "main": "setup-appwrite.js",
+  "scripts": {
+    "setup": "node setup-appwrite.js",
+    "seed": "node seed-products.js",
+    "cleanup:corporate": "node cleanup-corporate.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^13.0.0"
+  }
+}

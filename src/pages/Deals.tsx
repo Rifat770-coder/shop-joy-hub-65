@@ -6,10 +6,21 @@ import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { products } from '@/data/products';
+import { useProducts } from '@/hooks/useProducts';
+import { useCurrency } from '@/hooks/useCurrency';
 
-// Get products with discounts
-const discountedProducts = products.filter(p => p.originalPrice && p.originalPrice > p.price);
+interface DealProduct {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string;
+  image: string | null;
+  price: number;
+  originalPrice?: number;
+  rating: number;
+  reviews: number;
+  stock: number;
+}
 
 // Calculate time remaining for countdown
 const calculateTimeRemaining = (endDate: Date) => {
@@ -33,7 +44,27 @@ const calculateTimeRemaining = (endDate: Date) => {
 const flashDealEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
 const Deals = () => {
+  const { data: products = [] } = useProducts();
   const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining(flashDealEndDate));
+  const { formatCurrency } = useCurrency();
+
+  const dealProducts: DealProduct[] = products.map((product) => ({
+    id: product.id,
+    name: product.name,
+    description: product.description || null,
+    category: product.category,
+    image: product.image || null,
+    price: Number(product.price),
+    originalPrice: (product as unknown as { originalPrice?: number }).originalPrice,
+    rating: Number(product.rating || 0),
+    reviews: Number(product.reviews || 0),
+    stock: product.stock,
+  }));
+
+  // Only real Appwrite records that actually include a discount are shown as deals.
+  const discountedProducts = dealProducts.filter(
+    (product) => typeof product.originalPrice === 'number' && product.originalPrice > product.price
+  );
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -167,10 +198,10 @@ const Deals = () => {
                       {/* Price */}
                       <div className="flex items-baseline gap-3">
                         <span className="text-3xl font-bold text-primary">
-                          ${product.price.toFixed(2)}
+                          {formatCurrency(product.price)}
                         </span>
                         <span className="text-lg text-muted-foreground line-through">
-                          ${product.originalPrice!.toFixed(2)}
+                          {formatCurrency(product.originalPrice!)}
                         </span>
                       </div>
 

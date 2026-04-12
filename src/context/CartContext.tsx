@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { CartItem, Product } from '@/types';
 import { toast } from '@/hooks/use-toast';
 
-const CART_STORAGE_KEY = 'shophub_cart';
+const CART_STORAGE_KEY = 'realgadgetbd_cart';
 
 interface CartContextType {
   items: CartItem[];

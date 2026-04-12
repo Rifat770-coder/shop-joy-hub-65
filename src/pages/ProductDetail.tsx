@@ -26,14 +26,15 @@ import { useProduct, useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
+import { useCurrency } from '@/hooks/useCurrency';
+import { normalizeImageUrl } from '@/lib/image-utils';
 
-// Mock gallery images
-const getGalleryImages = (mainImage: string | null) => [
-  mainImage || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=600&fit=crop',
-  'https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=600&h=600&fit=crop',
-];
+// Build gallery from product's actual images only (pipe-separated)
+const getGalleryImages = (image: string | null | undefined): string[] => {
+  if (!image) return ['/placeholder.svg'];
+  const imgs = image.split('|').map(normalizeImageUrl).filter(Boolean);
+  return imgs.length > 0 ? imgs : ['/placeholder.svg'];
+};
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -42,6 +43,7 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const { formatCurrency } = useCurrency();
 
   const { data: product, isLoading } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
@@ -87,7 +89,7 @@ const ProductDetail = () => {
   }
 
   const galleryImages = getGalleryImages(product.image);
-  const discount = 0; // No originalPrice in DB schema
+  const discount = 0;
 
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
@@ -160,19 +162,23 @@ const ProductDetail = () => {
                   className="w-full h-full object-cover"
                 />
                 
-                {/* Navigation Arrows */}
-                <button
-                  onClick={handlePrevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <button
-                  onClick={handleNextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </button>
+                {/* Navigation Arrows - only show when multiple images */}
+                {galleryImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-background/80 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </>
+                )}
 
                 {/* Discount Badge */}
                 {discount > 0 && (
@@ -182,26 +188,28 @@ const ProductDetail = () => {
                 )}
               </div>
 
-              {/* Thumbnails */}
-              <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2">
-                {galleryImages.map((img, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setSelectedImageIndex(index)}
-                    className={`w-14 h-14 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
-                      selectedImageIndex === index
-                        ? 'border-primary'
-                        : 'border-transparent hover:border-border'
-                    }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
+              {/* Thumbnails - only show when multiple images */}
+              {galleryImages.length > 1 && (
+                <div className="flex gap-2 md:gap-3 overflow-x-auto pb-2">
+                  {galleryImages.map((img, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImageIndex(index)}
+                      className={`w-14 h-14 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all shrink-0 ${
+                        selectedImageIndex === index
+                          ? 'border-primary'
+                          : 'border-transparent hover:border-border'
+                      }`}
+                    >
+                      <img
+                        src={img}
+                        alt={`${product.name} ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Product Info */}
@@ -227,7 +235,7 @@ const ProductDetail = () => {
               {/* Price */}
               <div className="flex items-baseline gap-3">
                 <span className="text-2xl md:text-4xl font-bold text-primary">
-                  ${Number(product.price).toFixed(2)}
+                  {formatCurrency(Number(product.price))}
                 </span>
               </div>
 

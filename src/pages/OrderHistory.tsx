@@ -13,8 +13,10 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { useAuth } from '@/context/AuthContext';
+import { Query } from 'appwrite';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface OrderItem {
   product: {
@@ -31,10 +33,54 @@ interface Order {
   items: OrderItem[];
   total: number;
   status: string;
+  payment_method: string;
+  payment_status: string;
+  refunded_amount: number;
+  refund_reason: string;
   shipping_address: string;
   created_at: string;
   updated_at: string;
 }
+
+const normalizeOrder = (raw: Record<string, unknown>): Order => {
+  const rawItems = raw.items;
+  let parsedItems: OrderItem[] = [];
+
+  if (Array.isArray(rawItems)) {
+    parsedItems = rawItems as OrderItem[];
+  } else if (typeof rawItems === 'string') {
+    try {
+      const candidate = JSON.parse(rawItems);
+      if (Array.isArray(candidate)) {
+        parsedItems = candidate as OrderItem[];
+      }
+    } catch {
+      parsedItems = [];
+    }
+  }
+
+  return {
+    id: (raw.$id as string) || (raw.id as string),
+    items: parsedItems,
+    total: Number(raw.total || 0),
+    status: (raw.status as string) || 'pending',
+    payment_method: ((raw.paymentMethod as string) || (raw.payment_method as string) || 'cod').toLowerCase(),
+    payment_status: ((raw.paymentStatus as string) || (raw.payment_status as string) || 'pending').toLowerCase(),
+    refunded_amount: Number((raw.refundedAmount as number) || (raw.refunded_amount as number) || 0),
+    refund_reason: (raw.refundReason as string) || (raw.refund_reason as string) || '',
+    shipping_address: (raw.shipping_address as string) || (raw.shippingAddress as string) || '',
+    created_at: (raw.created_at as string) || (raw.$createdAt as string) || new Date().toISOString(),
+    updated_at: (raw.updated_at as string) || (raw.$updatedAt as string) || new Date().toISOString(),
+  };
+};
+
+const paymentStatusColor: Record<string, string> = {
+  pending: 'bg-muted text-muted-foreground border-border',
+  authorized: 'bg-info/10 text-info border-info/30',
+  paid: 'bg-success/10 text-success border-success/30',
+  failed: 'bg-destructive/10 text-destructive border-destructive/30',
+  refunded: 'bg-warning/10 text-warning border-warning/30',
+};
 
 const statusConfig: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   pending: { label: 'Pending', icon: Clock, color: 'bg-warning/10 text-warning border-warning/30' },
@@ -48,6 +94,7 @@ const OrderHistory = () => {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const { formatCurrency } = useCurrency();
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -57,25 +104,23 @@ const OrderHistory = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from('orders')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.ORDERS,
+          [
+            Query.equal('userId', user.$id),
+            Query.orderDesc('$createdAt'),
+          ]
+        );
 
-        if (error) throw error;
-
-        // Parse items from jsonb - cast through unknown for type safety
-        const parsedOrders = (data || []).map((order) => ({
-          ...order,
-          items: Array.isArray(order.items) 
-            ? (order.items as unknown as OrderItem[]) 
-            : [],
-        })) as Order[];
-
-        setOrders(parsedOrders);
+        setOrders(
+          response.documents.map((doc) =>
+            normalizeOrder(doc as unknown as Record<string, unknown>)
+          )
+        );
       } catch (error) {
         console.error('Error fetching orders:', error);
+        setOrders([]);
       } finally {
         setLoading(false);
       }
@@ -176,7 +221,7 @@ const OrderHistory = () => {
                         </div>
                         <div className="flex items-center gap-4">
                           <span className="font-semibold">
-                            ${Number(order.total).toFixed(2)}
+                            {formatCurrency(Number(order.total))}
                           </span>
                           <Badge
                             variant="outline"
@@ -184,6 +229,12 @@ const OrderHistory = () => {
                           >
                             <StatusIcon className="h-3 w-3" />
                             {statusInfo.label}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={paymentStatusColor[order.payment_status] || paymentStatusColor.pending}
+                          >
+                            {order.payment_status}
                           </Badge>
                         </div>
                       </div>
@@ -220,7 +271,7 @@ const OrderHistory = () => {
                               </p>
                             </div>
                             <p className="font-medium">
-                              ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                              {formatCurrency((item.product?.price || 0) * item.quantity)}
                             </p>
                           </div>
                         ))}
@@ -240,8 +291,18 @@ const OrderHistory = () => {
                       <div className="flex justify-between items-center pt-4 border-t border-border">
                         <span className="font-medium">Total</span>
                         <span className="text-xl font-bold text-primary">
-                          ${Number(order.total).toFixed(2)}
+                          {formatCurrency(Number(order.total))}
                         </span>
+                      </div>
+
+                      <div className="mt-3 text-sm text-muted-foreground">
+                        Payment via {order.payment_method.toUpperCase()} • {order.payment_status}
+                        {order.payment_status === 'refunded' && order.refunded_amount > 0 && (
+                          <span className="text-warning"> • Refunded {formatCurrency(order.refunded_amount)}</span>
+                        )}
+                        {order.refund_reason && (
+                          <p className="mt-1">Reason: {order.refund_reason}</p>
+                        )}
                       </div>
 
                       {/* Track Order Button */}

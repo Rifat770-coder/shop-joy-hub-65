@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Review } from '@/hooks/useReviews';
+import { Review } from '@/integrations/appwrite/types';
 import { ReviewForm } from './ReviewForm';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -71,13 +71,13 @@ export const ReviewList = ({
     const sorted = [...reviews];
     switch (sortBy) {
       case 'recent':
-        return sorted.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        return sorted.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
       case 'highest':
         return sorted.sort((a, b) => b.rating - a.rating);
       case 'lowest':
         return sorted.sort((a, b) => a.rating - b.rating);
       case 'helpful':
-        return sorted.sort((a, b) => b.helpful_count - a.helpful_count);
+        return sorted.sort((a, b) => b.helpfulCount - a.helpfulCount);
       default:
         return sorted;
     }
@@ -85,7 +85,7 @@ export const ReviewList = ({
 
   const handleUpdate = async (rating: number, title: string, content: string) => {
     if (!editingReview) return false;
-    const success = await onUpdate(editingReview.id, rating, title, content);
+    const success = await onUpdate(editingReview.$id, rating, title, content);
     if (success) setEditingReview(null);
     return success;
   };
@@ -186,7 +186,7 @@ export const ReviewList = ({
       ) : (
         <div className="space-y-6">
           {visibleReviews.map((review) => (
-            <div key={review.id} className="pb-6 border-b border-border last:border-0">
+            <div key={review.$id} className="pb-6 border-b border-border last:border-0">
               <div className="flex items-start gap-4">
                 <Avatar className="h-10 w-10">
                   <AvatarFallback className="bg-primary/10 text-primary">
@@ -197,8 +197,8 @@ export const ReviewList = ({
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{review.author_name}</p>
-                        {review.verified_purchase && (
+                        <p className="font-medium">{review.authorName || 'Anonymous User'}</p>
+                        {review.verifiedPurchase && (
                           <Badge variant="secondary" className="text-xs">
                             Verified Purchase
                           </Badge>
@@ -207,11 +207,11 @@ export const ReviewList = ({
                       <div className="flex items-center gap-2 mt-1">
                         <div className="flex">{renderStars(review.rating)}</div>
                         <span className="text-sm text-muted-foreground">
-                          {new Date(review.created_at).toLocaleDateString()}
+                          {new Date(review.$createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
-                    {user && review.user_id === user.id && (
+                    {user && review.userId === user.$id && (
                       <div className="flex gap-2">
                         <Button
                           variant="ghost"
@@ -235,7 +235,7 @@ export const ReviewList = ({
                             </AlertDialogHeader>
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => onDelete(review.id)}>
+                              <AlertDialogAction onClick={() => onDelete(review.$id)}>
                                 Delete
                               </AlertDialogAction>
                             </AlertDialogFooter>

@@ -20,7 +20,32 @@ export default tseslint.config(
     rules: {
       ...reactHooks.configs.recommended.rules,
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }],
-      "@typescript-eslint/no-unused-vars": "off",
+      // Enable unused variable detection for dead-code drift prevention
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_",
+          caughtErrorsIgnorePattern: "^_",
+        },
+      ],
+      // Production logging rules
+      "no-console": [
+        "warn",
+        {
+          allow: ["warn", "error", "info"], // Allow warn, error, info but not log/debug in production
+        },
+      ],
+      "no-debugger": "warn", // Disallow debugger statements
+      // Additional code quality rules
+      "@typescript-eslint/no-explicit-any": "warn", // Warn on explicit any types
+      "@typescript-eslint/explicit-function-return-type": [
+        "warn",
+        {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+        },
+      ],
     },
   },
 );

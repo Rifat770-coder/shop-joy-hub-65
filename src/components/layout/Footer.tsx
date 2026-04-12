@@ -1,209 +1,170 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight, Sparkles } from "lucide-react";
+import { Facebook, Instagram, Youtube, Mail, Phone, MapPin, ArrowRight, Send } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { databases, DATABASE_ID } from "@/integrations/appwrite/config";
+import { Query } from "appwrite";
+import { useSettings } from "@/hooks/useSettings";
 
 export function Footer() {
   const [email, setEmail] = useState("");
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const { toast } = useToast();
+  const { storeSettings } = useSettings();
 
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!email.trim()) {
-      toast({
-        title: "Email required",
-        description: "Please enter your email address.",
-        variant: "destructive",
-      });
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast({ title: "Invalid email", description: "Please enter a valid email address.", variant: "destructive" });
       return;
     }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      toast({
-        title: "Invalid email",
-        description: "Please enter a valid email address.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsSubscribing(true);
-
     try {
-      const { data, error } = await supabase.functions.invoke("subscribe-newsletter", {
-        body: { email },
-      });
-
-      if (error) {
-        throw error;
+      const normalizedEmail = email.trim().toLowerCase();
+      const existing = await databases.listDocuments(DATABASE_ID, 'newsletter_subscriptions', [Query.equal('email', normalizedEmail)]);
+      if (existing.documents.length > 0) {
+        toast({ title: "Already subscribed!", description: "You're already on our list." });
+      } else {
+        await databases.createDocument(DATABASE_ID, 'newsletter_subscriptions', crypto.randomUUID(), { email: normalizedEmail, subscribedAt: new Date().toISOString() });
+        toast({ title: "Subscribed!", description: "Thanks for joining our newsletter." });
       }
-
-      // Check if already subscribed
-      if (data?.already_subscribed) {
-        toast({
-          title: "Already subscribed",
-          description: "This email is already subscribed to our newsletter.",
-        });
-        setEmail("");
-        return;
-      }
-
-      toast({
-        title: "Subscribed!",
-        description: "Thanks for subscribing to our newsletter.",
-      });
-
       setEmail("");
-    } catch (error: unknown) {
-      console.error("Subscription error:", error);
-      toast({
-        title: "Subscription failed",
-        description: "Could not subscribe. Please try again later.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Failed", description: "Could not subscribe. Try again later.", variant: "destructive" });
     } finally {
       setIsSubscribing(false);
     }
   };
-  return (
-    <footer className="relative overflow-hidden bg-gradient-to-b from-background via-secondary/30 to-secondary/50 pb-20 md:pb-0">
-      {/* Decorative Elements */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,hsl(var(--primary)/0.08)_0%,transparent_50%)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_20%,hsl(var(--primary)/0.05)_0%,transparent_50%)]" />
 
-      {/* Newsletter Section */}
-      <div className="relative border-b border-border/50">
-        <div className="container py-12">
-          <div className="relative rounded-2xl bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-8 md:p-12 backdrop-blur-sm border border-primary/10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
-              <div className="text-center lg:text-left">
-                <h3 className="text-2xl md:text-3xl font-bold mb-2">
-                  Stay in the <span className="text-primary">Loop</span>
-                </h3>
-                <p className="text-muted-foreground max-w-md">
-                  Get exclusive deals, new arrivals, and insider-only discounts straight to your inbox.
-                </p>
-              </div>
-              <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                <Input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="bg-background/80 border-border/50 backdrop-blur-sm min-w-[280px] h-12"
-                />
-                <Button type="submit" size="lg" className="gap-2 h-12 px-6" disabled={isSubscribing}>
-                  {isSubscribing ? "Subscribing..." : "Subscribe"}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </form>
+  const storeName = storeSettings.storeName.replace(/\s*BD$/i, "").trim();
+
+  return (
+    <footer className="bg-slate-900 text-slate-300 pb-20 md:pb-0">
+
+      {/* Newsletter strip */}
+      <div className="bg-orange-500">
+        <div className="container py-5">
+          <form onSubmit={handleSubscribe} className="flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="flex items-center gap-2 text-white">
+              <Send className="h-5 w-5 shrink-0" />
+              <span className="font-semibold text-sm sm:text-base">Get exclusive deals in your inbox</span>
             </div>
-          </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Input
+                type="email"
+                placeholder="Your email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/20 border-white/30 placeholder:text-white/70 text-white h-9 text-sm flex-1 sm:w-56"
+              />
+              <Button type="submit" size="sm" disabled={isSubscribing}
+                className="bg-white text-orange-600 hover:bg-orange-50 font-semibold h-9 px-4 shrink-0">
+                {isSubscribing ? "..." : "Subscribe"}
+              </Button>
+            </div>
+          </form>
         </div>
       </div>
 
-      {/* Main Footer Content */}
-      <div className="container py-12 md:py-16 relative">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8">
-          {/* Brand */}
-          <div className="space-y-6 lg:col-span-1">
-            <Link to="/" className="inline-flex items-center gap-3 group">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl gradient-primary shadow-lg shadow-primary/25 group-hover:shadow-primary/40 transition-shadow">
-                <span className="text-xl font-bold text-primary-foreground">S</span>
-              </div>
-              <span className="text-2xl font-bold tracking-tight">
-                Shop<span className="text-primary">Hub</span>
+      {/* Main content */}
+      <div className="container py-10">
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
+
+          {/* Brand — full width on mobile */}
+          <div className="col-span-2 md:col-span-1 space-y-4">
+            <Link to="/" className="inline-flex items-center gap-2">
+              <img src="/2.png" alt="RealGadget BD" className="h-9 w-9 rounded-lg object-contain" />
+              <span className="text-xl font-extrabold text-white tracking-tight">
+                {storeName}<span className="text-orange-400"> BD</span>
               </span>
             </Link>
-            <p className="text-muted-foreground leading-relaxed">
-              Your one-stop destination for all your shopping needs. Quality products, great prices, fast delivery.
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Your one-stop destination for quality gadgets and electronics. Fast delivery across Bangladesh.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               {[
-                { icon: Facebook, label: "Facebook" },
-                { icon: Twitter, label: "Twitter" },
-                { icon: Instagram, label: "Instagram" },
-                { icon: Youtube, label: "Youtube" },
-              ].map(({ icon: Icon, label }) => (
-                <a
-                  key={label}
-                  href="#"
-                  className="flex h-10 w-10 items-center justify-center rounded-lg bg-secondary/80 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all duration-300 hover:scale-110 hover:shadow-lg hover:shadow-primary/25"
-                  aria-label={label}
-                >
-                  <Icon className="h-5 w-5" />
+                { icon: Facebook, href: "#", label: "Facebook" },
+                { icon: Instagram, href: "#", label: "Instagram" },
+                { icon: Youtube, href: "#", label: "Youtube" },
+              ].map(({ icon: Icon, href, label }) => (
+                <a key={label} href={href} aria-label={label}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-orange-500 hover:text-white transition-colors">
+                  <Icon className="h-4 w-4" />
                 </a>
               ))}
             </div>
           </div>
 
           {/* Quick Links */}
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <span className="w-8 h-0.5 bg-primary rounded-full" />
-              Quick Links
-            </h3>
-            <ul className="space-y-3">
-              {["About Us", "Contact Us", "FAQs", "Shipping Info", "Returns Policy"].map((item) => (
-                <li key={item}>
-                  <a
-                    href="#"
-                    className="text-muted-foreground hover:text-primary transition-colors inline-flex items-center gap-2 group"
-                  >
-                    <ArrowRight className="h-3 w-3 opacity-0 -ml-5 group-hover:opacity-100 group-hover:ml-0 transition-all duration-300" />
-                    {item}
-                  </a>
+          <div className="space-y-4">
+            <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Shop</h4>
+            <ul className="space-y-2.5">
+              {[
+                { label: "All Products", to: "/products" },
+                { label: "Categories", to: "/categories" },
+                { label: "Deals", to: "/deals" },
+                { label: "Wishlist", to: "/wishlist" },
+              ].map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to} className="text-slate-400 hover:text-orange-400 text-sm transition-colors flex items-center gap-1.5 group">
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Account */}
+          <div className="space-y-4">
+            <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Account</h4>
+            <ul className="space-y-2.5">
+              {[
+                { label: "My Profile", to: "/profile" },
+                { label: "Order History", to: "/orders" },
+                { label: "Cart", to: "/cart" },
+                { label: "Sign In", to: "/auth" },
+              ].map(({ label, to }) => (
+                <li key={label}>
+                  <Link to={to} className="text-slate-400 hover:text-orange-400 text-sm transition-colors flex items-center gap-1.5 group">
+                    <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    {label}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
           {/* Contact */}
-          <div className="space-y-5">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <span className="w-8 h-0.5 bg-primary rounded-full" />
-              Contact Us
-            </h3>
-            <ul className="space-y-4">
-              <li className="flex items-start gap-4 group">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <MapPin className="h-5 w-5" />
-                </div>
-                <span className="text-muted-foreground pt-2">123 Commerce Street, Business District, NY 10001</span>
+          <div className="col-span-2 sm:col-span-1 space-y-4">
+            <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Contact</h4>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3">
+                <MapPin className="h-4 w-4 text-orange-400 shrink-0 mt-0.5" />
+                <span className="text-slate-400 text-sm">{storeSettings.storeAddress}</span>
               </li>
-              <li className="flex items-center gap-4 group">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Phone className="h-5 w-5" />
-                </div>
-                <span className="text-muted-foreground">+1 (555) 123-4567</span>
+              <li className="flex items-center gap-3">
+                <Phone className="h-4 w-4 text-orange-400 shrink-0" />
+                <span className="text-slate-400 text-sm">{storeSettings.storePhone}</span>
               </li>
-              <li className="flex items-center gap-4 group">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <Mail className="h-5 w-5" />
-                </div>
-                <span className="text-muted-foreground">support@shophub.com</span>
+              <li className="flex items-center gap-3">
+                <Mail className="h-4 w-4 text-orange-400 shrink-0" />
+                <span className="text-slate-400 text-sm break-all">{storeSettings.storeEmail}</span>
               </li>
             </ul>
           </div>
         </div>
+      </div>
 
-        {/* Bottom Bar */}
-        <div className="mt-12 pt-8 border-t border-border/50">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-muted-foreground">© 2024 ShopHub. All rights reserved.</p>
-            <div className="flex flex-wrap justify-center gap-6">
-              {["Privacy Policy", "Terms of Service", "Cookie Policy"].map((item) => (
-                <a key={item} href="#" className="text-sm text-muted-foreground hover:text-primary transition-colors">
-                  {item}
-                </a>
-              ))}
-            </div>
+      {/* Bottom bar */}
+      <div className="border-t border-slate-800">
+        <div className="container py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <p className="text-slate-500 text-xs">© {new Date().getFullYear()} {storeName} BD. All rights reserved.</p>
+          <div className="flex gap-4">
+            {["Privacy Policy", "Terms", "Support"].map((item) => (
+              <a key={item} href="#" className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{item}</a>
+            ))}
           </div>
         </div>
       </div>

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Users, Mail, Phone, MapPin, Package, ChevronDown, ChevronUp, Search } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { AppwriteSetupGuide } from '@/components/AppwriteSetupGuide';
+import { PermissionError } from '@/components/PermissionError';
+import { useAuth } from '@/context/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,7 +23,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Query } from 'appwrite';
 
 interface OrderItem {
   product: {
@@ -53,6 +58,41 @@ interface Customer {
   orders: Order[];
 }
 
+const normalizeOrder = (doc: Record<string, unknown>): Order => {
+  const rawItems = doc.items;
+  return {
+    id: (doc.$id as string) || (doc.id as string) || '',
+    items: Array.isArray(rawItems) ? (rawItems as OrderItem[]) : [],
+    total: Number(doc.total || 0),
+    status: (doc.status as string) || 'pending',
+    shipping_address: (doc.shippingAddress as string) || (doc.shipping_address as string) || '',
+    created_at: (doc.$createdAt as string) || (doc.created_at as string) || new Date().toISOString(),
+  };
+};
+
+const normalizeCustomer = (
+  doc: Record<string, unknown>,
+  allOrders: Order[]
+): Customer => {
+  const userId = (doc.userId as string) || (doc.user_id as string) || '';
+  const orders = allOrders.filter((order) => {
+    const orderUserId = ((order as unknown as Record<string, unknown>).user_id as string) || '';
+    return orderUserId === userId;
+  });
+
+  return {
+    id: (doc.$id as string) || (doc.id as string) || userId,
+    user_id: userId,
+    full_name: (doc.fullName as string) || (doc.full_name as string) || null,
+    username: (doc.username as string) || null,
+    phone: (doc.phone as string) || null,
+    shipping_address: (doc.shippingAddress as string) || (doc.shipping_address as string) || null,
+    created_at: (doc.$createdAt as string) || (doc.created_at as string) || new Date().toISOString(),
+    email: (doc.email as string) || undefined,
+    orders,
+  };
+};
+
 const statusConfig: Record<string, string> = {
   pending: 'bg-warning/10 text-warning border-warning/30',
   processing: 'bg-primary/10 text-primary border-primary/30',
@@ -62,54 +102,139 @@ const statusConfig: Record<string, string> = {
 };
 
 export default function AdminCustomers() {
+  // Check if Appwrite is properly configured
+  const isConfigured = DATABASE_ID && DATABASE_ID !== 'your-appwrite-database-id';
+  const { user, loading: authLoading } = useAuth();
+
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedCustomer, setExpandedCustomer] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchCustomers();
-  }, []);
+    if (isConfigured && user && !authLoading) {
+      fetchCustomers();
+    }
+  }, [isConfigured, user, authLoading]);
+
+  // Show setup guide if Appwrite is not configured
+  if (!isConfigured) {
+    return <AppwriteSetupGuide />;
+  }
+
+  // Show loading state while checking authentication
+  if (authLoading) {
+    return (
+      <AdminLayout>
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Customers</h1>
+              <p className="text-muted-foreground mt-1">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!user) {
+    return (
+      <AdminLayout>
+        <div className="space-y-8">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Customers</h1>
+              <p className="text-muted-foreground mt-1">
+                Manage your customers and view their order history
+              </p>
+            </div>
+          </div>
+          <Card>
+            <CardContent className="p-12 text-center space-y-4">
+              <Users className="h-12 w-12 text-muted-foreground mx-auto" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Authentication Required</h3>
+                <p className="text-muted-foreground max-w-sm mx-auto">
+                  You need to be logged in to view customers. Please log in to your account to continue.
+                </p>
+              </div>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => window.location.href = '/auth'}>Log In</Button>
+                <Button variant="outline" onClick={() => window.location.href = '/'}>
+                  Back to Store
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const fetchCustomers = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
-      // Fetch all profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Check if Appwrite is properly configured
+      if (!DATABASE_ID || DATABASE_ID === 'your-appwrite-database-id') {
+        throw new Error('Appwrite database is not configured. Please set VITE_APPWRITE_DATABASE_ID in your .env file.');
+      }
 
-      if (profilesError) throw profilesError;
+      const [profilesResponse, ordersResponse] = await Promise.all([
+        databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.PROFILES,
+          []
+        ),
+        databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.ORDERS,
+          []
+        ),
+      ]);
 
-      // Fetch all orders
-      const { data: orders, error: ordersError } = await supabase
-        .from('orders')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (ordersError) throw ordersError;
-
-      // Map orders to customers
-      const customersWithOrders = (profiles || []).map((profile) => {
-        const customerOrders = (orders || [])
-          .filter((order) => order.user_id === profile.user_id)
-          .map((order) => ({
-            ...order,
-            items: Array.isArray(order.items) 
-              ? (order.items as unknown as OrderItem[]) 
-              : [],
-          }));
+      const normalizedOrders = ordersResponse.documents.map((orderDoc) => {
+        const normalized = normalizeOrder(orderDoc as unknown as Record<string, unknown>);
+        const orderUserId =
+          ((orderDoc as unknown as Record<string, unknown>).userId as string) ||
+          ((orderDoc as unknown as Record<string, unknown>).user_id as string) ||
+          '';
 
         return {
-          ...profile,
-          orders: customerOrders,
-        };
-      });
+          ...normalized,
+          user_id: orderUserId,
+        } as Order & { user_id: string };
+      }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      const customersWithOrders = profilesResponse.documents.map((profileDoc) =>
+        normalizeCustomer(
+          profileDoc as unknown as Record<string, unknown>,
+          normalizedOrders as unknown as Order[]
+        )
+      ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setCustomers(customersWithOrders);
     } catch (error) {
-      console.error('Error fetching customers:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const isAuthError = errorMessage.includes('unauthorized') || errorMessage.includes('401');
+      
+      console.error('Error fetching customers:', errorMessage, error);
+      setCustomers([]);
+      
+      if (isAuthError) {
+        setLoadError('You do not have permission to view customers. Please ensure you are logged in with an admin account.');
+      } else {
+        setLoadError(errorMessage || 'Failed to load customers. Please try again.');
+      }
+      
+      toast({
+        title: 'Error',
+        description: isAuthError ? 'Access denied' : (errorMessage || 'Failed to fetch customers'),
+        variant: 'destructive',
+      });
     } finally {
       setLoading(false);
     }
@@ -134,6 +259,19 @@ export default function AdminCustomers() {
   const toggleExpanded = (customerId: string) => {
     setExpandedCustomer((prev) => (prev === customerId ? null : customerId));
   };
+
+  // Show permission error if present
+  if (loadError && loadError.includes('Permission')) {
+    return (
+      <AdminLayout>
+        <PermissionError 
+          title="Cannot Access Customers"
+          description={loadError}
+          onRetry={fetchCustomers}
+        />
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -211,6 +349,22 @@ export default function AdminCustomers() {
                     <Skeleton className="h-4 w-20" />
                   </div>
                 ))}
+              </div>
+            ) : loadError ? (
+              <div className="p-12 text-center space-y-4">
+                <Users className="h-12 w-12 text-muted-foreground mx-auto" />
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Could not load customers</h3>
+                  <p className="text-muted-foreground whitespace-pre-wrap text-left max-w-prose mx-auto">
+                    {loadError}
+                  </p>
+                </div>
+                <div className="flex gap-2 justify-center">
+                  <Button onClick={fetchCustomers}>Retry</Button>
+                  <Button variant="outline" onClick={() => window.location.href = '/admin'}>
+                    Back to Dashboard
+                  </Button>
+                </div>
               </div>
             ) : filteredCustomers.length === 0 ? (
               <div className="p-12 text-center">

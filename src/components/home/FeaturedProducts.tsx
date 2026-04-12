@@ -24,19 +24,15 @@ export function FeaturedProducts() {
   }
 
   return (
-    <section className="py-16">
+    <section className="py-12 md:py-16">
       <div className="container">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl md:text-3xl font-bold">Featured Products</h2>
-            <p className="text-muted-foreground mt-1">Handpicked products just for you</p>
+            <h2 className="text-xl md:text-2xl font-black">Featured Products</h2>
+            <p className="text-muted-foreground text-sm mt-0.5">Handpicked products just for you</p>
           </div>
-          <Link 
-            to="/products" 
-            className="flex items-center gap-1 text-primary hover:underline font-medium"
-          >
-            View All
-            <ArrowRight className="h-4 w-4" />
+          <Link to="/products" className="flex items-center gap-1 text-sm text-primary hover:underline font-semibold">
+            View All <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
@@ -44,8 +40,7 @@ export function FeaturedProducts() {
           {featuredProducts.map((product, index) => (
             <div
               key={product.id}
-              className="animate-fade-in"
-              style={{ animationDelay: `${index * 0.1}s` }}
+              className={`animate-slide-up animate-stagger-${index + 1}`}
             >
               <ProductCard product={product as any} />
             </div>

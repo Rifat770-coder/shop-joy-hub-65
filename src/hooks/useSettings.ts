@@ -1,46 +1,22 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { StoreSetting, StoreSettings, ShippingOption, TaxSettings } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
-import type { Json } from '@/integrations/supabase/types';
-
-export interface StoreSettings {
-  storeName: string;
-  storeEmail: string;
-  storePhone: string;
-  storeAddress: string;
-  currency: string;
-  timezone: string;
-}
-
-export interface ShippingOption {
-  id: string;
-  name: string;
-  price: number;
-  estimatedDays: string;
-  enabled: boolean;
-}
-
-export interface TaxSettings {
-  enableTax: boolean;
-  taxRate: number;
-  taxName: string;
-  includeTaxInPrice: boolean;
-}
+import { Query, ID } from 'appwrite';
 
 const defaultStoreSettings: StoreSettings = {
-  storeName: 'ShopHub',
-  storeEmail: 'support@shophub.com',
+  storeName: 'RealGadget BD',
+  storeEmail: 'support@realgadgetbd.com',
   storePhone: '+1 (555) 123-4567',
   storeAddress: '123 Commerce Street, New York, NY 10001',
   currency: 'USD',
   timezone: 'America/New_York',
+  showFlashSale: true,
 };
 
 const defaultShippingOptions: ShippingOption[] = [
-  { id: '1', name: 'Standard Shipping', price: 0, estimatedDays: '5-7 business days', enabled: true },
-  { id: '2', name: 'Express Shipping', price: 9.99, estimatedDays: '2-3 business days', enabled: true },
-  { id: '3', name: 'Overnight Shipping', price: 24.99, estimatedDays: '1 business day', enabled: true },
-  { id: '4', name: 'International Shipping', price: 29.99, estimatedDays: '10-14 business days', enabled: false },
+  { id: 'inside_dhaka', name: 'Inside Dhaka', price: 60, estimatedDays: '1-2 business days', enabled: true },
+  { id: 'outside_dhaka', name: 'Outside Dhaka', price: 120, estimatedDays: '3-5 business days', enabled: true },
 ];
 
 const defaultTaxSettings: TaxSettings = {
@@ -49,6 +25,20 @@ const defaultTaxSettings: TaxSettings = {
   taxName: 'Sales Tax',
   includeTaxInPrice: false,
 };
+
+const parseSettingValue = <T>(value: unknown, fallback: T): T => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
+
+const stringifySettingValue = (value: unknown): string => JSON.stringify(value);
 
 export function useSettings() {
   const [storeSettings, setStoreSettings] = useState<StoreSettings>(defaultStoreSettings);
@@ -60,20 +50,30 @@ export function useSettings() {
   const fetchSettings = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('*');
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.STORE_SETTINGS
+      );
 
-      if (error) throw error;
-
-      if (data) {
-        data.forEach((setting) => {
+      if (response.documents) {
+        response.documents.forEach((setting: StoreSetting) => {
           if (setting.key === 'store') {
-            setStoreSettings(setting.value as unknown as StoreSettings);
+            const parsedStoreSettings = parseSettingValue<Partial<StoreSettings>>(
+              setting.value,
+              defaultStoreSettings
+            );
+            setStoreSettings({
+              ...defaultStoreSettings,
+              ...parsedStoreSettings,
+            });
           } else if (setting.key === 'shipping') {
-            setShippingOptions(setting.value as unknown as ShippingOption[]);
+            setShippingOptions(
+              parseSettingValue<ShippingOption[]>(setting.value, defaultShippingOptions)
+            );
           } else if (setting.key === 'tax') {
-            setTaxSettings(setting.value as unknown as TaxSettings);
+            setTaxSettings(
+              parseSettingValue<TaxSettings>(setting.value, defaultTaxSettings)
+            );
           }
         });
       }
@@ -96,29 +96,74 @@ export function useSettings() {
   const saveSettings = async () => {
     setSaving(true);
     try {
-      // Upsert store settings
-      const { error: storeError } = await supabase
-        .from('store_settings')
-        .update({ value: storeSettings as unknown as Json })
-        .eq('key', 'store');
+      // Update store settings
+      const storeResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.STORE_SETTINGS,
+        [Query.equal('key', 'store')]
+      );
 
-      if (storeError) throw storeError;
+      if (storeResponse.documents.length > 0) {
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          storeResponse.documents[0].$id,
+          { value: stringifySettingValue(storeSettings) }
+        );
+      } else {
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          ID.unique(),
+          { key: 'store', value: stringifySettingValue(storeSettings) }
+        );
+      }
 
-      // Upsert shipping settings
-      const { error: shippingError } = await supabase
-        .from('store_settings')
-        .update({ value: shippingOptions as unknown as Json })
-        .eq('key', 'shipping');
+      // Update shipping settings
+      const shippingResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.STORE_SETTINGS,
+        [Query.equal('key', 'shipping')]
+      );
 
-      if (shippingError) throw shippingError;
+      if (shippingResponse.documents.length > 0) {
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          shippingResponse.documents[0].$id,
+          { value: stringifySettingValue(shippingOptions) }
+        );
+      } else {
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          ID.unique(),
+          { key: 'shipping', value: stringifySettingValue(shippingOptions) }
+        );
+      }
 
-      // Upsert tax settings
-      const { error: taxError } = await supabase
-        .from('store_settings')
-        .update({ value: taxSettings as unknown as Json })
-        .eq('key', 'tax');
+      // Update tax settings
+      const taxResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.STORE_SETTINGS,
+        [Query.equal('key', 'tax')]
+      );
 
-      if (taxError) throw taxError;
+      if (taxResponse.documents.length > 0) {
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          taxResponse.documents[0].$id,
+          { value: stringifySettingValue(taxSettings) }
+        );
+      } else {
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS,
+          ID.unique(),
+          { key: 'tax', value: stringifySettingValue(taxSettings) }
+        );
+      }
 
       toast({
         title: 'Settings saved',
@@ -139,6 +184,10 @@ export function useSettings() {
   const handleStoreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setStoreSettings((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleStoreFieldChange = (field: keyof StoreSettings, value: StoreSettings[keyof StoreSettings]) => {
+    setStoreSettings((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleShippingChange = (id: string, field: keyof ShippingOption, value: string | number | boolean) => {
@@ -176,6 +225,7 @@ export function useSettings() {
     saving,
     saveSettings,
     handleStoreChange,
+    handleStoreFieldChange,
     handleShippingChange,
     handleTaxChange,
     addShippingOption,

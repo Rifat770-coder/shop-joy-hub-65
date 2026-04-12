@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Package, 
   AlertTriangle, 
@@ -43,59 +43,87 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
-import { products as initialProducts } from '@/data/products';
+import { useProducts, useUpdateProduct, Product } from '@/hooks/useProducts';
 
 interface StockUpdate {
-  productId: string;
-  stock: number;
   lowStockThreshold: number;
-  lastRestocked?: string;
+}
+
+interface WarehouseAllocation {
+  main: number;
+  east: number;
+  west: number;
 }
 
 const LOW_STOCK_THRESHOLD_DEFAULT = 10;
+const DEFAULT_WAREHOUSE_ALLOCATION: WarehouseAllocation = {
+  main: 0,
+  east: 0,
+  west: 0,
+};
 
 export default function AdminInventory() {
-  const [stockUpdates, setStockUpdates] = useState<Record<string, StockUpdate>>({});
+  const { data: products = [] } = useProducts();
+  const updateProduct = useUpdateProduct();
+  const [thresholds, setThresholds] = useState<Record<string, StockUpdate>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'low' | 'out' | 'ok'>('all');
   const [sortBy, setSortBy] = useState<'name' | 'stock' | 'category'>('stock');
-  const [selectedProduct, setSelectedProduct] = useState<typeof initialProducts[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [restockAmount, setRestockAmount] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [warehouseStocks, setWarehouseStocks] = useState<Record<string, WarehouseAllocation>>({});
+  const previousLowStockCount = useRef(0);
 
-  // Load stock updates from localStorage
+  // Load threshold overrides from localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('admin_stock_updates');
+    const saved = localStorage.getItem('admin_stock_thresholds');
     if (saved) {
-      setStockUpdates(JSON.parse(saved));
+      setThresholds(JSON.parse(saved));
+    }
+
+    const savedWarehouses = localStorage.getItem('admin_warehouse_stocks');
+    if (savedWarehouses) {
+      setWarehouseStocks(JSON.parse(savedWarehouses));
     }
   }, []);
 
-  // Save stock updates to localStorage
-  const saveStockUpdates = (updates: Record<string, StockUpdate>) => {
-    setStockUpdates(updates);
-    localStorage.setItem('admin_stock_updates', JSON.stringify(updates));
+  const saveThresholds = (updates: Record<string, StockUpdate>) => {
+    setThresholds(updates);
+    localStorage.setItem('admin_stock_thresholds', JSON.stringify(updates));
   };
 
-  // Get current stock for a product
-  const getProductStock = (productId: string, originalStock: number) => {
-    return stockUpdates[productId]?.stock ?? originalStock;
+  const saveWarehouseStocks = (updates: Record<string, WarehouseAllocation>) => {
+    setWarehouseStocks(updates);
+    localStorage.setItem('admin_warehouse_stocks', JSON.stringify(updates));
+  };
+
+  const getWarehouseAllocation = (product: Product): WarehouseAllocation => {
+    const existing = warehouseStocks[product.id];
+    if (existing) {
+      return existing;
+    }
+
+    return {
+      ...DEFAULT_WAREHOUSE_ALLOCATION,
+      main: product.stock,
+    };
   };
 
   // Get low stock threshold for a product
   const getLowStockThreshold = (productId: string) => {
-    return stockUpdates[productId]?.lowStockThreshold ?? LOW_STOCK_THRESHOLD_DEFAULT;
+    return thresholds[productId]?.lowStockThreshold ?? LOW_STOCK_THRESHOLD_DEFAULT;
   };
 
   // Products with current stock info
   const productsWithStock = useMemo(() => {
-    return initialProducts.map((product) => ({
+    return products.map((product) => ({
       ...product,
-      currentStock: getProductStock(product.id, product.stock),
+      currentStock: product.stock,
       threshold: getLowStockThreshold(product.id),
-      lastRestocked: stockUpdates[product.id]?.lastRestocked,
+      warehouseAllocation: getWarehouseAllocation(product),
     }));
-  }, [stockUpdates]);
+  }, [products, thresholds, warehouseStocks]);
 
   // Filter and sort products
   const filteredProducts = useMemo(() => {
@@ -159,63 +187,66 @@ export default function AdminInventory() {
   const handleRestock = () => {
     if (!selectedProduct || restockAmount <= 0) return;
 
-    const currentStock = getProductStock(selectedProduct.id, selectedProduct.stock);
+    const currentStock = selectedProduct.stock;
     const newStock = currentStock + restockAmount;
 
-    const updates = {
-      ...stockUpdates,
-      [selectedProduct.id]: {
-        productId: selectedProduct.id,
-        stock: newStock,
-        lowStockThreshold: getLowStockThreshold(selectedProduct.id),
-        lastRestocked: new Date().toISOString(),
-      },
-    };
+    updateProduct.mutate(
+      { id: selectedProduct.id, stock: newStock },
+      {
+        onSuccess: () => {
+          const currentWarehouse = getWarehouseAllocation(selectedProduct);
+          saveWarehouseStocks({
+            ...warehouseStocks,
+            [selectedProduct.id]: {
+              ...currentWarehouse,
+              main: currentWarehouse.main + restockAmount,
+            },
+          });
 
-    saveStockUpdates(updates);
-    setDialogOpen(false);
-    setRestockAmount(0);
-    setSelectedProduct(null);
+          setDialogOpen(false);
+          setRestockAmount(0);
+          setSelectedProduct(null);
 
-    toast({
-      title: 'Stock updated',
-      description: `Added ${restockAmount} units to ${selectedProduct.name}. New stock: ${newStock}`,
-    });
+          toast({
+            title: 'Stock updated',
+            description: `Added ${restockAmount} units to ${selectedProduct.name}. New stock: ${newStock}`,
+          });
+        },
+      }
+    );
   };
 
   // Update stock directly
   const updateStock = (productId: string, newStock: number) => {
-    const product = initialProducts.find((p) => p.id === productId);
+    const product = products.find((p) => p.id === productId);
     if (!product) return;
 
-    const updates = {
-      ...stockUpdates,
-      [productId]: {
-        productId,
-        stock: Math.max(0, newStock),
-        lowStockThreshold: getLowStockThreshold(productId),
-        lastRestocked: stockUpdates[productId]?.lastRestocked,
-      },
-    };
+    const safeStock = Math.max(0, newStock);
+    const diff = safeStock - product.stock;
 
-    saveStockUpdates(updates);
+    const currentWarehouse = getWarehouseAllocation(product);
+    const nextMain = Math.max(0, currentWarehouse.main + diff);
+    saveWarehouseStocks({
+      ...warehouseStocks,
+      [product.id]: {
+        ...currentWarehouse,
+        main: nextMain,
+      },
+    });
+
+    updateProduct.mutate({ id: productId, stock: safeStock });
   };
 
   // Update threshold
   const updateThreshold = (productId: string, threshold: number) => {
-    const currentStock = getProductStock(productId, initialProducts.find((p) => p.id === productId)?.stock || 0);
-
     const updates = {
-      ...stockUpdates,
+      ...thresholds,
       [productId]: {
-        productId,
-        stock: currentStock,
         lowStockThreshold: Math.max(1, threshold),
-        lastRestocked: stockUpdates[productId]?.lastRestocked,
       },
     };
 
-    saveStockUpdates(updates);
+    saveThresholds(updates);
   };
 
   const getStockStatus = (stock: number, threshold: number) => {
@@ -228,6 +259,16 @@ export default function AdminInventory() {
   const lowStockAlerts = productsWithStock.filter(
     (p) => p.currentStock <= p.threshold
   );
+
+  useEffect(() => {
+    if (lowStockAlerts.length > previousLowStockCount.current) {
+      toast({
+        title: 'Low stock alert',
+        description: `${lowStockAlerts.length} products need replenishment.`,
+      });
+    }
+    previousLowStockCount.current = lowStockAlerts.length;
+  }, [lowStockAlerts]);
 
   return (
     <AdminLayout>
@@ -382,6 +423,7 @@ export default function AdminInventory() {
                   <TableHead>Product</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Stock</TableHead>
+                  <TableHead>Warehouses</TableHead>
                   <TableHead>Threshold</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Value</TableHead>
@@ -431,6 +473,13 @@ export default function AdminInventory() {
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          <Badge variant="secondary">Main: {product.warehouseAllocation.main}</Badge>
+                          <Badge variant="secondary">East: {product.warehouseAllocation.east}</Badge>
+                          <Badge variant="secondary">West: {product.warehouseAllocation.west}</Badge>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -492,7 +541,7 @@ export default function AdminInventory() {
                   <div>
                     <p className="font-medium">{selectedProduct.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      Current stock: {getProductStock(selectedProduct.id, selectedProduct.stock)} units
+                      Current stock: {selectedProduct.stock} units
                     </p>
                   </div>
                 </div>
@@ -513,7 +562,7 @@ export default function AdminInventory() {
                     <p className="text-sm">
                       New stock level:{' '}
                       <span className="font-medium">
-                        {getProductStock(selectedProduct.id, selectedProduct.stock) + restockAmount} units
+                        {selectedProduct.stock + restockAmount} units
                       </span>
                     </p>
                   </div>
@@ -524,7 +573,7 @@ export default function AdminInventory() {
               <Button variant="outline" onClick={() => setDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleRestock} disabled={restockAmount <= 0}>
+              <Button onClick={handleRestock} disabled={restockAmount <= 0 || updateProduct.isPending}>
                 Confirm Restock
               </Button>
             </DialogFooter>

@@ -1,9 +1,10 @@
-import { useState } from 'react';
-import { Plus, Search, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Plus, Search, Edit, Trash2, MoreHorizontal, Loader2, PlusCircle, XCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { getPrimaryImage, normalizeImageUrl } from '@/lib/image-utils';
 import {
   Table,
   TableBody,
@@ -34,7 +35,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { categories } from '@/data/products';
 import { 
   useProducts, 
   useAddProduct, 
@@ -49,6 +49,8 @@ export default function AdminProducts() {
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
+  // normalizeImageUrl is imported from @/lib/image-utils
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,17 +61,28 @@ export default function AdminProducts() {
     price: '',
     category: '',
     stock: '',
-    image: '',
   });
+  const [newImageUrls, setNewImageUrls] = useState<string[]>(['']);
+  const [editImageUrls, setEditImageUrls] = useState<string[]>(['']);
 
   const filteredProducts = products.filter((p) =>
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const categoryOptions = useMemo(() => {
+    const set = new Set(products.map((p) => p.category));
+    if (editingProduct?.category) set.add(editingProduct.category);
+    if (newProduct.category) set.add(newProduct.category);
+    return Array.from(set).sort();
+  }, [products, editingProduct?.category, newProduct.category]);
+
   const handleAddProduct = async () => {
     if (!newProduct.name || !newProduct.price || !newProduct.category) {
       return;
     }
+
+    const images = newImageUrls.map(normalizeImageUrl).filter(Boolean);
+    const imageValue = images.length > 0 ? images.join('|') : 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop';
 
     await addProduct.mutateAsync({
       name: newProduct.name,
@@ -77,21 +90,27 @@ export default function AdminProducts() {
       price: parseFloat(newProduct.price),
       category: newProduct.category,
       stock: parseInt(newProduct.stock) || 0,
-      image: newProduct.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
+      image: imageValue,
     });
 
-    setNewProduct({ name: '', description: '', price: '', category: '', stock: '', image: '' });
+    setNewProduct({ name: '', description: '', price: '', category: '', stock: '' });
+    setNewImageUrls(['']);
     setIsAddDialogOpen(false);
   };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
+    const imgs = product.image ? product.image.split('|').filter(Boolean) : [''];
+    setEditImageUrls(imgs.length > 0 ? imgs : ['']);
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEdit = async () => {
     if (!editingProduct) return;
-    
+
+    const images = editImageUrls.map(normalizeImageUrl).filter(Boolean);
+    const imageValue = images.length > 0 ? images.join('|') : editingProduct.image || '';
+
     await updateProduct.mutateAsync({
       id: editingProduct.id,
       name: editingProduct.name,
@@ -99,7 +118,7 @@ export default function AdminProducts() {
       price: editingProduct.price,
       category: editingProduct.category,
       stock: editingProduct.stock,
-      image: editingProduct.image,
+      image: imageValue,
     });
 
     setIsEditDialogOpen(false);
@@ -132,7 +151,7 @@ export default function AdminProducts() {
             </p>
           </div>
 
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) setNewImageUrls(['']); }}>
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -204,24 +223,49 @@ export default function AdminProducts() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.name}>
-                          {cat.name}
+                      {categoryOptions.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="image">Image URL</Label>
-                  <Input
-                    id="image"
-                    value={newProduct.image}
-                    onChange={(e) =>
-                      setNewProduct({ ...newProduct, image: e.target.value })
-                    }
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <Label>Image URLs</Label>
+                  <div className="text-xs text-muted-foreground -mt-1 space-y-0.5">
+                    <p>Use a direct image URL. Recommended free hosts:</p>
+                    <p>• <a href="https://imgbb.com" target="_blank" rel="noreferrer" className="underline text-primary">imgbb.com</a> — upload → copy "Direct link"</p>
+                    <p>• <a href="https://imgur.com" target="_blank" rel="noreferrer" className="underline text-primary">imgur.com</a> — upload → right-click image → copy image address</p>
+                  </div>
+                  {newImageUrls.map((url, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input
+                        value={url}
+                        onChange={(e) => {
+                          const updated = [...newImageUrls];
+                          updated[idx] = e.target.value;
+                          setNewImageUrls(updated);
+                        }}
+                        placeholder={idx === 0 ? 'https://i.ibb.co/xxx/image.jpg' : 'Additional image URL'}
+                      />
+                      {newImageUrls.length > 1 && (
+                        <button type="button" onClick={() => setNewImageUrls(newImageUrls.filter((_, i) => i !== idx))}>
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit gap-1"
+                    onClick={() => setNewImageUrls([...newImageUrls, ''])}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add another image
+                  </Button>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -305,24 +349,49 @@ export default function AdminProducts() {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.name}>
-                          {cat.name}
+                      {categoryOptions.map((category) => (
+                        <SelectItem key={category} value={category}>
+                          {category}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="edit-image">Image URL</Label>
-                  <Input
-                    id="edit-image"
-                    value={editingProduct.image || ''}
-                    onChange={(e) =>
-                      setEditingProduct({ ...editingProduct, image: e.target.value })
-                    }
-                    placeholder="https://example.com/image.jpg"
-                  />
+                  <Label>Image URLs</Label>
+                  <div className="text-xs text-muted-foreground -mt-1 space-y-0.5">
+                    <p>Use a direct image URL. Recommended free hosts:</p>
+                    <p>• <a href="https://imgbb.com" target="_blank" rel="noreferrer" className="underline text-primary">imgbb.com</a> — upload → copy "Direct link"</p>
+                    <p>• <a href="https://imgur.com" target="_blank" rel="noreferrer" className="underline text-primary">imgur.com</a> — upload → right-click image → copy image address</p>
+                  </div>
+                  {editImageUrls.map((url, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input
+                        value={url}
+                        onChange={(e) => {
+                          const updated = [...editImageUrls];
+                          updated[idx] = e.target.value;
+                          setEditImageUrls(updated);
+                        }}
+                        placeholder={idx === 0 ? 'https://i.ibb.co/xxx/image.jpg' : 'Additional image URL'}
+                      />
+                      {editImageUrls.length > 1 && (
+                        <button type="button" onClick={() => setEditImageUrls(editImageUrls.filter((_, i) => i !== idx))}>
+                          <XCircle className="h-5 w-5 text-destructive" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-fit gap-1"
+                    onClick={() => setEditImageUrls([...editImageUrls, ''])}
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add another image
+                  </Button>
                 </div>
               </div>
             )}
@@ -369,7 +438,7 @@ export default function AdminProducts() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img
-                        src={product.image || '/placeholder.svg'}
+                        src={getPrimaryImage(product.image)}
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus, Loader2 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus, Loader2, Zap } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,9 +9,11 @@ import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { Badge } from '@/components/ui/badge';
-import { useSettings, ShippingOption, TaxSettings } from '@/hooks/useSettings';
+import { useSettings } from '@/hooks/useSettings';
+import { useAuth } from '@/context/AuthContext';
+import { ID, Query } from 'appwrite';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,6 +26,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
+import { FlashSaleManager } from '@/components/admin/FlashSaleManager';
+
 interface AdminUser {
   id: string;
   user_id: string;
@@ -32,7 +36,15 @@ interface AdminUser {
   created_at: string;
 }
 
+const getErrorMessage = (error: unknown, fallback: string): string => {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+};
+
 export default function AdminSettings() {
+  const { user } = useAuth();
   const {
     storeSettings,
     shippingOptions,
@@ -41,6 +53,7 @@ export default function AdminSettings() {
     saving,
     saveSettings,
     handleStoreChange,
+    handleStoreFieldChange,
     handleShippingChange,
     handleTaxChange,
     addShippingOption,
@@ -53,38 +66,92 @@ export default function AdminSettings() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
   const [addingAdmin, setAddingAdmin] = useState(false);
 
-  // Load admin users
-  useEffect(() => {
-    fetchAdminUsers();
+  const findRoleByUserId = useCallback(async (userId: string) => {
+    const currentField = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.USER_ROLES,
+      [Query.equal('userId', userId), Query.equal('role', 'admin')]
+    );
+
+    if (currentField.documents[0]) {
+      return currentField.documents[0];
+    }
+
+    try {
+      const legacyField = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.USER_ROLES,
+        [Query.equal('user_id', userId), Query.equal('role', 'admin')]
+      );
+
+      return legacyField.documents[0];
+    } catch (error) {
+      console.warn('Legacy user_id query not available for user_roles:', error);
+      return undefined;
+    }
   }, []);
 
-  const fetchAdminUsers = async () => {
+  const fetchProfileName = useCallback(async (userId: string) => {
+    const profileByCurrentField = await databases.listDocuments(
+      DATABASE_ID,
+      COLLECTIONS.PROFILES,
+      [Query.equal('userId', userId), Query.limit(1)]
+    );
+
+    const currentProfile = profileByCurrentField.documents[0];
+    if (currentProfile) {
+      return currentProfile.fullName || currentProfile.username || userId;
+    }
+
+    try {
+      const profileByLegacyField = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.PROFILES,
+        [Query.equal('user_id', userId), Query.limit(1)]
+      );
+
+      const legacyProfile = profileByLegacyField.documents[0];
+      return legacyProfile?.fullName || legacyProfile?.username || userId;
+    } catch (error) {
+      console.warn('Legacy user_id query not available for profiles:', error);
+      return userId;
+    }
+  }, []);
+
+  const fetchAdminUsers = useCallback(async () => {
     setLoadingRoles(true);
     try {
-      // Get all user roles with admin role
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('role', 'admin');
-
-      if (rolesError) throw rolesError;
+      // Get all user roles with admin role from Appwrite
+      const rolesResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.USER_ROLES,
+        [Query.equal('role', 'admin')]
+      );
 
       // Get profile info for each admin user
       const adminUsersWithDetails: AdminUser[] = [];
       
-      for (const role of roles || []) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', role.user_id)
-          .single();
+      for (const role of rolesResponse.documents || []) {
+        const userId = role.userId || role.user_id;
+
+        if (!userId) {
+          continue;
+        }
+
+        let displayName = userId;
+        try {
+          displayName = await fetchProfileName(userId);
+        } catch (profileError) {
+          console.warn(`Could not fetch profile for user ${userId}:`, profileError);
+          // Fall back to using userId if profile fetch fails
+        }
 
         adminUsersWithDetails.push({
-          id: role.id,
-          user_id: role.user_id,
+          id: role.$id,
+          user_id: userId,
           role: role.role as 'admin',
-          email: profile?.full_name || 'Unknown User',
-          created_at: role.created_at,
+          email: displayName,
+          created_at: role.$createdAt || role.created_at,
         });
       }
 
@@ -99,7 +166,12 @@ export default function AdminSettings() {
     } finally {
       setLoadingRoles(false);
     }
-  };
+  }, [fetchProfileName]);
+
+  // Load admin users
+  useEffect(() => {
+    fetchAdminUsers();
+  }, [fetchAdminUsers]);
 
   const addAdminRole = async () => {
     if (!newAdminEmail.trim()) {
@@ -113,15 +185,10 @@ export default function AdminSettings() {
 
     setAddingAdmin(true);
     try {
-      // Check if user already has admin role
-      const { data: existingRole, error: checkError } = await supabase
-        .from('user_roles')
-        .select('*')
-        .eq('user_id', newAdminEmail.trim())
-        .eq('role', 'admin')
-        .maybeSingle();
+      const userId = newAdminEmail.trim();
 
-      if (checkError) throw checkError;
+      // Check if user already has admin role
+      const existingRole = await findRoleByUserId(userId);
 
       if (existingRole) {
         toast({
@@ -133,14 +200,28 @@ export default function AdminSettings() {
       }
 
       // Add admin role
-      const { error: insertError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: newAdminEmail.trim(),
-          role: 'admin',
-        });
-
-      if (insertError) throw insertError;
+      try {
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.USER_ROLES,
+          ID.unique(),
+          {
+            userId,
+            role: 'admin',
+          }
+        );
+      } catch {
+        // Backward compatibility for older schema names.
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.USER_ROLES,
+          ID.unique(),
+          {
+            user_id: userId,
+            role: 'admin',
+          }
+        );
+      }
 
       toast({
         title: 'Admin Added',
@@ -149,11 +230,11 @@ export default function AdminSettings() {
 
       setNewAdminEmail('');
       fetchAdminUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error adding admin:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to add admin role',
+        description: getErrorMessage(error, 'Failed to add admin role'),
         variant: 'destructive',
       });
     } finally {
@@ -163,10 +244,10 @@ export default function AdminSettings() {
 
   const removeAdminRole = async (roleId: string, userId: string) => {
     try {
-      // Get current user's ID
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user from context
+      const currentUser = user;
       
-      if (user?.id === userId) {
+      if (currentUser?.$id === userId) {
         toast({
           title: 'Error',
           description: 'You cannot remove your own admin privileges',
@@ -175,12 +256,11 @@ export default function AdminSettings() {
         return;
       }
 
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('id', roleId);
-
-      if (error) throw error;
+      await databases.deleteDocument(
+        DATABASE_ID,
+        COLLECTIONS.USER_ROLES,
+        roleId
+      );
 
       toast({
         title: 'Admin Removed',
@@ -188,11 +268,11 @@ export default function AdminSettings() {
       });
 
       fetchAdminUsers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error removing admin:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to remove admin role',
+        description: getErrorMessage(error, 'Failed to remove admin role'),
         variant: 'destructive',
       });
     }
@@ -239,6 +319,10 @@ export default function AdminSettings() {
             <TabsTrigger value="store" className="gap-2">
               <Store className="h-4 w-4" />
               Store
+            </TabsTrigger>
+            <TabsTrigger value="flash-sale" className="gap-2">
+              <Zap className="h-4 w-4" />
+              Flash Sale
             </TabsTrigger>
             <TabsTrigger value="shipping" className="gap-2">
               <Truck className="h-4 w-4" />
@@ -332,8 +416,14 @@ export default function AdminSettings() {
                     placeholder="America/New_York"
                   />
                 </div>
+
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Flash Sale Settings */}
+          <TabsContent value="flash-sale">
+            <FlashSaleManager />
           </TabsContent>
 
           {/* Shipping Settings */}
@@ -510,14 +600,15 @@ export default function AdminSettings() {
 
           {/* User Roles Settings */}
           <TabsContent value="roles">
-            <Card>
-              <CardHeader>
-                <CardTitle>Admin User Management</CardTitle>
-                <CardDescription>
-                  Manage users with administrator privileges
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Admin User Management</CardTitle>
+                  <CardDescription>
+                    Manage users with administrator privileges
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
                 {/* Add new admin */}
                 <div className="p-4 bg-secondary/50 rounded-lg space-y-4">
                   <h4 className="font-medium">Add New Admin</h4>
@@ -529,7 +620,7 @@ export default function AdminSettings() {
                         onChange={(e) => setNewAdminEmail(e.target.value)}
                       />
                       <p className="text-xs text-muted-foreground mt-1">
-                        Enter the user's UUID from their profile
+                        Enter the Appwrite User ID from Profile Settings
                       </p>
                     </div>
                     <Button 
@@ -607,8 +698,10 @@ export default function AdminSettings() {
                     </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+
+            </div>
           </TabsContent>
         </Tabs>
       </div>

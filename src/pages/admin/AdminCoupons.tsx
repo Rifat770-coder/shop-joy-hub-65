@@ -29,33 +29,61 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { toast } from '@/hooks/use-toast';
-import type { Coupon } from '@/hooks/useCoupons';
+import { Query } from 'appwrite';
+
+interface Coupon {
+  id: string;
+  code: string;
+  description: string | null;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  minimumOrder: number;
+  maxUses: number | null;
+  usedCount: number;
+  startsAt: string | null;
+  expiresAt: string | null;
+  isActive: boolean;
+}
 
 interface CouponForm {
   code: string;
   description: string;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: string;
-  minimum_order: string;
-  max_uses: string;
-  starts_at: string;
-  expires_at: string;
-  is_active: boolean;
+  discountType: 'percentage' | 'fixed';
+  discountValue: string;
+  minimumOrder: string;
+  maxUses: string;
+  startsAt: string;
+  expiresAt: string;
+  isActive: boolean;
 }
 
 const defaultForm: CouponForm = {
   code: '',
   description: '',
-  discount_type: 'percentage',
-  discount_value: '',
-  minimum_order: '0',
-  max_uses: '',
-  starts_at: new Date().toISOString().slice(0, 16),
-  expires_at: '',
-  is_active: true,
+  discountType: 'percentage',
+  discountValue: '',
+  minimumOrder: '0',
+  maxUses: '',
+  startsAt: new Date().toISOString().slice(0, 16),
+  expiresAt: '',
+  isActive: true,
 };
+
+const normalizeCoupon = (doc: Record<string, unknown>): Coupon => ({
+  id: (doc.$id as string) || (doc.id as string),
+  code: (doc.code as string) || '',
+  description: (doc.description as string) || null,
+  discountType: ((doc.discountType as string) || 'percentage') as 'percentage' | 'fixed',
+  discountValue: Number(doc.discountValue || 0),
+  minimumOrder: Number(doc.minimumOrder || 0),
+  maxUses: doc.maxUses === null || doc.maxUses === undefined ? null : Number(doc.maxUses),
+  usedCount: Number(doc.usedCount || 0),
+  startsAt: (doc.startsAt as string) || null,
+  expiresAt: (doc.expiresAt as string) || null,
+  isActive: Boolean(doc.isActive),
+});
 
 const AdminCoupons = () => {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -70,16 +98,23 @@ const AdminCoupons = () => {
   }, []);
 
   const fetchCoupons = async () => {
+    setLoading(true);
     try {
-      // Using service role through edge function would be ideal, but for admin we fetch all
-      const { data, error } = await supabase
-        .from('coupons')
-        .select('*')
-        .order('created_at', { ascending: false });
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.COUPONS,
+        []
+      );
 
-      if (error) throw error;
-      setCoupons((data as Coupon[]) || []);
-    } catch (error: any) {
+      const sortedCoupons = response.documents
+        .map((doc) => normalizeCoupon(doc as unknown as Record<string, unknown>))
+        .sort((a, b) => {
+          const dateA = new Date((a as any).created_at || (a as any).createdAt || 0).getTime();
+          const dateB = new Date((b as any).created_at || (b as any).createdAt || 0).getTime();
+          return dateB - dateA;
+        });
+      setCoupons(sortedCoupons);
+    } catch (error) {
       console.error('Error fetching coupons:', error);
       toast({
         title: 'Error',
@@ -97,13 +132,13 @@ const AdminCoupons = () => {
       setForm({
         code: coupon.code,
         description: coupon.description || '',
-        discount_type: coupon.discount_type,
-        discount_value: coupon.discount_value.toString(),
-        minimum_order: coupon.minimum_order.toString(),
-        max_uses: coupon.max_uses?.toString() || '',
-        starts_at: coupon.starts_at ? new Date(coupon.starts_at).toISOString().slice(0, 16) : '',
-        expires_at: coupon.expires_at ? new Date(coupon.expires_at).toISOString().slice(0, 16) : '',
-        is_active: coupon.is_active,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue.toString(),
+        minimumOrder: coupon.minimumOrder.toString(),
+        maxUses: coupon.maxUses?.toString() || '',
+        startsAt: coupon.startsAt ? new Date(coupon.startsAt).toISOString().slice(0, 16) : '',
+        expiresAt: coupon.expiresAt ? new Date(coupon.expiresAt).toISOString().slice(0, 16) : '',
+        isActive: coupon.isActive,
       });
     } else {
       setEditingCoupon(null);
@@ -122,7 +157,7 @@ const AdminCoupons = () => {
       return;
     }
 
-    if (!form.discount_value || parseFloat(form.discount_value) <= 0) {
+    if (!form.discountValue || parseFloat(form.discountValue) <= 0) {
       toast({
         title: 'Invalid discount',
         description: 'Please enter a valid discount value.',
@@ -137,33 +172,35 @@ const AdminCoupons = () => {
       const couponData = {
         code: form.code.toUpperCase().trim(),
         description: form.description.trim() || null,
-        discount_type: form.discount_type,
-        discount_value: parseFloat(form.discount_value),
-        minimum_order: parseFloat(form.minimum_order) || 0,
-        max_uses: form.max_uses ? parseInt(form.max_uses) : null,
-        starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : new Date().toISOString(),
-        expires_at: form.expires_at ? new Date(form.expires_at).toISOString() : null,
-        is_active: form.is_active,
+        discountType: form.discountType,
+        discountValue: parseFloat(form.discountValue),
+        minimumOrder: parseFloat(form.minimumOrder) || 0,
+        maxUses: form.maxUses ? parseInt(form.maxUses, 10) : null,
+        startsAt: form.startsAt ? new Date(form.startsAt).toISOString() : new Date().toISOString(),
+        expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : null,
+        isActive: form.isActive,
+        usedCount: editingCoupon?.usedCount ?? 0,
       };
 
       if (editingCoupon) {
-        const { error } = await supabase
-          .from('coupons')
-          .update(couponData)
-          .eq('id', editingCoupon.id);
-
-        if (error) throw error;
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.COUPONS,
+          editingCoupon.id,
+          couponData
+        );
 
         toast({
           title: 'Coupon updated',
           description: 'The coupon has been updated successfully.',
         });
       } else {
-        const { error } = await supabase
-          .from('coupons')
-          .insert(couponData);
-
-        if (error) throw error;
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.COUPONS,
+          crypto.randomUUID(),
+          couponData
+        );
 
         toast({
           title: 'Coupon created',
@@ -173,11 +210,12 @@ const AdminCoupons = () => {
 
       setDialogOpen(false);
       fetchCoupons();
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to save coupon.';
       console.error('Error saving coupon:', error);
       toast({
         title: 'Error',
-        description: error.message || 'Failed to save coupon.',
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -189,12 +227,11 @@ const AdminCoupons = () => {
     if (!confirm(`Are you sure you want to delete coupon "${coupon.code}"?`)) return;
 
     try {
-      const { error } = await supabase
-        .from('coupons')
-        .delete()
-        .eq('id', coupon.id);
-
-      if (error) throw error;
+      await databases.deleteDocument(
+        DATABASE_ID,
+        COLLECTIONS.COUPONS,
+        coupon.id
+      );
 
       toast({
         title: 'Coupon deleted',
@@ -202,7 +239,7 @@ const AdminCoupons = () => {
       });
 
       fetchCoupons();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting coupon:', error);
       toast({
         title: 'Error',
@@ -214,15 +251,15 @@ const AdminCoupons = () => {
 
   const handleToggleActive = async (coupon: Coupon) => {
     try {
-      const { error } = await supabase
-        .from('coupons')
-        .update({ is_active: !coupon.is_active })
-        .eq('id', coupon.id);
-
-      if (error) throw error;
+      await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.COUPONS,
+        coupon.id,
+        { isActive: !coupon.isActive }
+      );
 
       fetchCoupons();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error toggling coupon:', error);
       toast({
         title: 'Error',
@@ -233,14 +270,14 @@ const AdminCoupons = () => {
   };
 
   const getCouponStatus = (coupon: Coupon) => {
-    if (!coupon.is_active) return { label: 'Inactive', variant: 'secondary' as const };
-    if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+    if (!coupon.isActive) return { label: 'Inactive', variant: 'secondary' as const };
+    if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
       return { label: 'Expired', variant: 'destructive' as const };
     }
-    if (coupon.starts_at && new Date(coupon.starts_at) > new Date()) {
+    if (coupon.startsAt && new Date(coupon.startsAt) > new Date()) {
       return { label: 'Scheduled', variant: 'outline' as const };
     }
-    if (coupon.max_uses !== null && coupon.used_count >= coupon.max_uses) {
+    if (coupon.maxUses !== null && coupon.usedCount >= coupon.maxUses) {
       return { label: 'Exhausted', variant: 'secondary' as const };
     }
     return { label: 'Active', variant: 'default' as const };
@@ -300,8 +337,8 @@ const AdminCoupons = () => {
                   <div className="space-y-2">
                     <Label>Discount Type</Label>
                     <Select
-                      value={form.discount_type}
-                      onValueChange={(v) => setForm({ ...form, discount_type: v as 'percentage' | 'fixed' })}
+                      value={form.discountType}
+                      onValueChange={(v) => setForm({ ...form, discountType: v as 'percentage' | 'fixed' })}
                     >
                       <SelectTrigger>
                         <SelectValue />
@@ -314,22 +351,22 @@ const AdminCoupons = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="discount_value">
+                    <Label htmlFor="discountValue">
                       Discount Value *
                     </Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                        {form.discount_type === 'percentage' ? '%' : '$'}
+                        {form.discountType === 'percentage' ? '%' : '$'}
                       </span>
                       <Input
-                        id="discount_value"
+                        id="discountValue"
                         type="number"
-                        value={form.discount_value}
-                        onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
+                        value={form.discountValue}
+                        onChange={(e) => setForm({ ...form, discountValue: e.target.value })}
                         className="pl-8"
                         placeholder="0"
                         min="0"
-                        step={form.discount_type === 'percentage' ? '1' : '0.01'}
+                        step={form.discountType === 'percentage' ? '1' : '0.01'}
                       />
                     </div>
                   </div>
@@ -337,12 +374,12 @@ const AdminCoupons = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="minimum_order">Minimum Order ($)</Label>
+                    <Label htmlFor="minimumOrder">Minimum Order ($)</Label>
                     <Input
-                      id="minimum_order"
+                      id="minimumOrder"
                       type="number"
-                      value={form.minimum_order}
-                      onChange={(e) => setForm({ ...form, minimum_order: e.target.value })}
+                      value={form.minimumOrder}
+                      onChange={(e) => setForm({ ...form, minimumOrder: e.target.value })}
                       placeholder="0"
                       min="0"
                       step="0.01"
@@ -350,12 +387,12 @@ const AdminCoupons = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="max_uses">Max Uses (empty = unlimited)</Label>
+                    <Label htmlFor="maxUses">Max Uses (empty = unlimited)</Label>
                     <Input
-                      id="max_uses"
+                      id="maxUses"
                       type="number"
-                      value={form.max_uses}
-                      onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
+                      value={form.maxUses}
+                      onChange={(e) => setForm({ ...form, maxUses: e.target.value })}
                       placeholder="Unlimited"
                       min="1"
                     />
@@ -364,32 +401,32 @@ const AdminCoupons = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="starts_at">Start Date</Label>
+                    <Label htmlFor="startsAt">Start Date</Label>
                     <Input
-                      id="starts_at"
+                      id="startsAt"
                       type="datetime-local"
-                      value={form.starts_at}
-                      onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+                      value={form.startsAt}
+                      onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="expires_at">Expiry Date (optional)</Label>
+                    <Label htmlFor="expiresAt">Expiry Date (optional)</Label>
                     <Input
-                      id="expires_at"
+                      id="expiresAt"
                       type="datetime-local"
-                      value={form.expires_at}
-                      onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                      value={form.expiresAt}
+                      onChange={(e) => setForm({ ...form, expiresAt: e.target.value })}
                     />
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="is_active">Active</Label>
+                  <Label htmlFor="isActive">Active</Label>
                   <Switch
-                    id="is_active"
-                    checked={form.is_active}
-                    onCheckedChange={(checked) => setForm({ ...form, is_active: checked })}
+                    id="isActive"
+                    checked={form.isActive}
+                    onCheckedChange={(checked) => setForm({ ...form, isActive: checked })}
                   />
                 </div>
 
@@ -452,7 +489,7 @@ const AdminCoupons = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold">
-                  {coupons.reduce((sum, c) => sum + c.used_count, 0)}
+                  {coupons.reduce((sum, c) => sum + c.usedCount, 0)}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Uses</p>
               </div>
@@ -496,30 +533,30 @@ const AdminCoupons = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {coupon.discount_type === 'percentage' ? (
+                          {coupon.discountType === 'percentage' ? (
                             <>
                               <Percent className="h-3 w-3" />
-                              {coupon.discount_value}%
+                              {coupon.discountValue}%
                             </>
                           ) : (
                             <>
                               <DollarSign className="h-3 w-3" />
-                              {coupon.discount_value.toFixed(2)}
+                              {coupon.discountValue.toFixed(2)}
                             </>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>${coupon.minimum_order.toFixed(2)}</TableCell>
+                      <TableCell>${coupon.minimumOrder.toFixed(2)}</TableCell>
                       <TableCell>
-                        {coupon.used_count}
-                        {coupon.max_uses !== null && ` / ${coupon.max_uses}`}
+                        {coupon.usedCount}
+                        {coupon.maxUses !== null && ` / ${coupon.maxUses}`}
                       </TableCell>
                       <TableCell>
                         <Badge variant={status.variant}>{status.label}</Badge>
                       </TableCell>
                       <TableCell>
                         <Switch
-                          checked={coupon.is_active}
+                          checked={coupon.isActive}
                           onCheckedChange={() => handleToggleActive(coupon)}
                         />
                       </TableCell>

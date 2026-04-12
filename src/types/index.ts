@@ -33,6 +33,11 @@ export interface Order {
   items: CartItem[];
   total: number;
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  paymentMethod?: 'stripe' | 'paypal' | 'bkash' | 'nagad' | 'cod' | 'card';
+  paymentStatus?: 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded';
+  refundedAmount?: number;
+  refundReason?: string;
+  refundedAt?: string;
   customerName: string;
   customerEmail: string;
   shippingAddress: string;

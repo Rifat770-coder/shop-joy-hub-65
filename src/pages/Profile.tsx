@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { User, Package, Heart, Settings, LogOut, Save, Camera, Truck, MapPin, Eye } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -14,8 +14,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useAuth } from '@/context/AuthContext';
 import { useOrders } from '@/hooks/useOrders';
 import { useFavorites } from '@/hooks/useFavorites';
-import { supabase } from '@/integrations/supabase/client';
-import { products } from '@/data/products';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Query, ID } from 'appwrite';
+import { useProducts } from '@/hooks/useProducts';
 import { ProductCard } from '@/components/products/ProductCard';
 import { toast } from '@/hooks/use-toast';
 
@@ -31,7 +32,9 @@ const Profile = () => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { orders, loading: ordersLoading } = useOrders();
   const { favorites, loading: favoritesLoading } = useFavorites();
+  const { data: products = [] } = useProducts();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [profile, setProfile] = useState<Profile>({
     username: '',
@@ -42,6 +45,15 @@ const Profile = () => {
   });
   const [profileLoading, setProfileLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState('orders');
+
+  const isSetupMode = new URLSearchParams(location.search).get('setup') === '1';
+
+  useEffect(() => {
+    if (isSetupMode) {
+      setActiveTab('settings');
+    }
+  }, [isSetupMode]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -54,20 +66,20 @@ const Profile = () => {
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .maybeSingle();
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.PROFILES,
+          [Query.equal('userId', user.$id)]
+        );
 
-        if (error) throw error;
+        const data = response.documents[0];
 
         if (data) {
           setProfile({
             username: data.username || '',
-            full_name: data.full_name || '',
+            full_name: data.fullName || '',
             phone: data.phone || '',
-            shipping_address: data.shipping_address || '',
+            shipping_address: data.shippingAddress || '',
             avatar_url: data.avatar_url || '',
           });
         }
@@ -86,22 +98,49 @@ const Profile = () => {
 
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          username: profile.username,
-          full_name: profile.full_name,
-          phone: profile.phone,
-          shipping_address: profile.shipping_address,
-        })
-        .eq('user_id', user.id);
+      // Check if profile exists
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.PROFILES,
+        [Query.equal('userId', user.$id)]
+      );
 
-      if (error) throw error;
+      const profileData = {
+        username: profile.username,
+        fullName: profile.full_name,
+        phone: profile.phone,
+        shippingAddress: profile.shipping_address,
+      };
+
+      if (response.documents.length > 0) {
+        // Update existing profile
+        await databases.updateDocument(
+          DATABASE_ID,
+          COLLECTIONS.PROFILES,
+          response.documents[0].$id,
+          profileData
+        );
+      } else {
+        // Create new profile
+        await databases.createDocument(
+          DATABASE_ID,
+          COLLECTIONS.PROFILES,
+          ID.unique(),
+          {
+            ...profileData,
+            userId: user.$id,
+          }
+        );
+      }
 
       toast({
         title: 'Profile updated',
         description: 'Your profile has been saved successfully.',
       });
+
+      if (isSetupMode) {
+        navigate('/', { replace: true });
+      }
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
@@ -171,7 +210,7 @@ const Profile = () => {
             </Button>
           </div>
 
-          <Tabs defaultValue="orders" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-3 max-w-md">
               <TabsTrigger value="orders" className="gap-2">
                 <Package className="h-4 w-4" />
@@ -212,14 +251,14 @@ const Profile = () => {
                     <div className="space-y-4">
                       {orders.map((order) => (
                         <div
-                          key={order.id}
+                          key={order.$id}
                           className="p-4 border border-border rounded-lg space-y-3"
                         >
                           <div className="flex items-center justify-between">
                             <div>
-                              <p className="font-medium">Order #{order.id.slice(0, 8)}</p>
+                              <p className="font-medium">Order #{order.$id.slice(0, 8)}</p>
                               <p className="text-sm text-muted-foreground">
-                                {new Date(order.created_at).toLocaleDateString()} •{' '}
+                                {new Date(order.$createdAt).toLocaleDateString()} •{' '}
                                 {order.items.length} items
                               </p>
                             </div>
@@ -230,17 +269,17 @@ const Profile = () => {
                               </Badge>
                             </div>
                           </div>
-                          
+
                           {/* Order Actions */}
                           <div className="pt-3 border-t border-border">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                 <MapPin className="h-4 w-4" />
                                 <span className="truncate max-w-[200px]">
-                                  {order.shipping_address.split('\n')[0]}
+                                  {order.shippingAddress.split('\n')[0]}
                                 </span>
                               </div>
-                              <Link to={`/orders/${order.id}`}>
+                              <Link to={`/orders/${order.$id}`}>
                                 <Button variant="outline" size="sm" className="gap-2">
                                   <Truck className="h-4 w-4" />
                                   Track Order
@@ -300,6 +339,39 @@ const Profile = () => {
                   ) : (
                     <>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <Label htmlFor="userId">User ID</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="userId"
+                              value={user.$id}
+                              readOnly
+                              className="bg-muted"
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(user.$id);
+                                  toast({
+                                    title: 'Copied',
+                                    description: 'User ID copied to clipboard.',
+                                  });
+                                } catch (error) {
+                                  console.error('Failed to copy user ID:', error);
+                                  toast({
+                                    title: 'Copy failed',
+                                    description: 'Please copy the ID manually.',
+                                    variant: 'destructive',
+                                  });
+                                }
+                              }}
+                            >
+                              Copy
+                            </Button>
+                          </div>
+                        </div>
                         <div className="space-y-2">
                           <Label htmlFor="fullName">Full Name</Label>
                           <Input

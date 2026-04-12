@@ -1,0 +1,13 @@
+{
+  "name": "validate-coupon",
+  "version": "1.0.0",
+  "description": "Validate coupon codes for RealGadget BD",
+  "main": "src/main.js",
+  "type": "module",
+  "scripts": {
+    "build": "node src/main.js"
+  },
+  "dependencies": {
+    "node-appwrite": "^13.0.0"
+  }
+}

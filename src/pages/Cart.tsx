@@ -8,7 +8,7 @@ import { useCart } from '@/context/CartContext';
 import { Separator } from '@/components/ui/separator';
 import { CouponInput } from '@/components/cart/CouponInput';
 import { AppliedCoupon } from '@/hooks/useCoupons';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 
 interface TaxSettings {
   enableTax: boolean;
@@ -16,6 +16,22 @@ interface TaxSettings {
   taxName: string;
   includeTaxInPrice: boolean;
 }
+
+interface ShippingOption {
+  enabled: boolean;
+}
+
+const parseSettingValue = <T,>(value: unknown, fallback: T): T => {
+  if (typeof value !== 'string') {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+};
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
@@ -30,28 +46,44 @@ const Cart = () => {
 
   useEffect(() => {
     const fetchSettings = async () => {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('*');
+      try {
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.STORE_SETTINGS
+        );
 
-      if (!error && data) {
-        const taxData = data.find(s => s.key === 'tax');
-        const shippingData = data.find(s => s.key === 'shipping');
+        if (response.documents.length > 0) {
+          const taxData = response.documents.find((setting) => setting.key === 'tax');
+          const shippingData = response.documents.find((setting) => setting.key === 'shipping');
 
-        if (taxData?.value) {
-          const value = taxData.value as unknown as TaxSettings;
-          setTaxSettings({
-            enableTax: value.enableTax ?? false,
-            taxRate: value.taxRate ?? 0,
-            taxName: value.taxName ?? 'Tax',
-            includeTaxInPrice: value.includeTaxInPrice ?? false,
-          });
+          if (taxData?.value) {
+            const value = parseSettingValue<TaxSettings>(taxData.value, {
+              enableTax: false,
+              taxRate: 0,
+              taxName: 'Tax',
+              includeTaxInPrice: false,
+            });
+
+            setTaxSettings({
+              enableTax: value.enableTax ?? false,
+              taxRate: value.taxRate ?? 0,
+              taxName: value.taxName ?? 'Tax',
+              includeTaxInPrice: value.includeTaxInPrice ?? false,
+            });
+          }
+
+          if (shippingData?.value) {
+            const shippingOptions = parseSettingValue<ShippingOption[]>(
+              shippingData.value,
+              []
+            );
+            setHasShippingOptions(
+              Array.isArray(shippingOptions) && shippingOptions.some((opt) => opt.enabled)
+            );
+          }
         }
-
-        if (shippingData?.value) {
-          const shippingOptions = shippingData.value as unknown as Array<{ enabled: boolean }>;
-          setHasShippingOptions(Array.isArray(shippingOptions) && shippingOptions.some(opt => opt.enabled));
-        }
+      } catch (error) {
+        console.error('Error fetching cart settings:', error);
       }
     };
 

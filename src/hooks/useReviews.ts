@@ -1,21 +1,10 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Review, Profile } from '@/integrations/appwrite/types';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
-
-export interface Review {
-  id: string;
-  product_id: string;
-  user_id: string;
-  rating: number;
-  title: string;
-  content: string;
-  helpful_count: number;
-  verified_purchase: boolean;
-  created_at: string;
-  updated_at: string;
-  author_name?: string;
-}
+import { Query, ID } from 'appwrite';
+import { handleAsyncError, logError } from '@/lib/utils';
 
 export const useReviews = (productId: string) => {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -25,27 +14,31 @@ export const useReviews = (productId: string) => {
 
   const fetchReviews = async () => {
     setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('reviews')
-        .select('*')
-        .eq('product_id', productId)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+    const result = await handleAsyncError(async () => {
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.REVIEWS,
+        [
+          Query.equal('productId', productId),
+          Query.orderDesc('$createdAt')
+        ]
+      );
 
       // Fetch author names from profiles
       const reviewsWithNames = await Promise.all(
-        (data || []).map(async (review) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('full_name, username')
-            .eq('user_id', review.user_id)
-            .maybeSingle();
+        response.documents.map(async (review: Review) => {
+          const profileResult = await handleAsyncError(async () => {
+            const profileResponse = await databases.listDocuments(
+              DATABASE_ID,
+              COLLECTIONS.PROFILES,
+              [Query.equal('userId', review.userId)]
+            );
+            return profileResponse.documents[0] as Profile;
+          }, null, `Failed to fetch profile for user ${review.userId}`);
 
           return {
             ...review,
-            author_name: profile?.full_name || profile?.username || 'Anonymous User',
+            authorName: profileResult?.fullName || profileResult?.username || 'Anonymous User',
           };
         })
       );
@@ -54,14 +47,17 @@ export const useReviews = (productId: string) => {
 
       // Check if current user has already reviewed
       if (user) {
-        const existing = reviewsWithNames.find((r) => r.user_id === user.id);
+        const existing = reviewsWithNames.find((r) => r.userId === user.$id);
         setUserReview(existing || null);
       }
-    } catch (error) {
-      console.error('Error fetching reviews:', error);
-    } finally {
-      setLoading(false);
+    }, undefined, 'Failed to fetch reviews');
+
+    if (!result) {
+      setReviews([]);
+      setUserReview(null);
     }
+
+    setLoading(false);
   };
 
   useEffect(() => {
@@ -80,16 +76,21 @@ export const useReviews = (productId: string) => {
       return false;
     }
 
-    try {
-      const { error } = await supabase.from('reviews').insert({
-        product_id: productId,
-        user_id: user.id,
-        rating,
-        title,
-        content,
-      });
-
-      if (error) throw error;
+    const result = await handleAsyncError(async () => {
+      await databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.REVIEWS,
+        ID.unique(),
+        {
+          productId: productId,
+          userId: user.$id,
+          rating: rating,
+          title: title,
+          content: content,
+          helpfulCount: 0,
+          verifiedPurchase: false,
+        }
+      );
 
       toast({
         title: 'Review submitted',
@@ -97,28 +98,63 @@ export const useReviews = (productId: string) => {
       });
 
       await fetchReviews();
+      await updateProductStats(productId);
       return true;
-    } catch (error: any) {
+    }, false, 'Failed to submit review');
+
+    if (!result) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to submit review.',
+        description: 'Failed to submit review. Please try again.',
         variant: 'destructive',
       });
-      return false;
     }
+
+    return result;
+  };
+
+  const updateProductStats = async (productId: string) => {
+    await handleAsyncError(async () => {
+      // Fetch all reviews for this product
+      const reviewsResponse = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.REVIEWS,
+        [Query.equal('productId', productId)]
+      );
+
+      const reviews = reviewsResponse.documents as Review[];
+      const totalReviews = reviews.length;
+      const averageRating = totalReviews > 0
+        ? reviews.reduce((sum, r) => sum + r.rating, 0) / totalReviews
+        : 0;
+
+      // Update product with new stats
+      await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        productId,
+        {
+          rating: Math.round(averageRating * 10) / 10, // Round to 1 decimal place
+          reviews: totalReviews,
+        }
+      );
+    }, undefined, 'Failed to update product statistics');
   };
 
   const updateReview = async (reviewId: string, rating: number, title: string, content: string) => {
     if (!user) return false;
 
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .update({ rating, title, content })
-        .eq('id', reviewId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+    const result = await handleAsyncError(async () => {
+      await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.REVIEWS,
+        reviewId,
+        {
+          rating: rating,
+          title: title,
+          content: content,
+        }
+      );
 
       toast({
         title: 'Review updated',
@@ -126,28 +162,30 @@ export const useReviews = (productId: string) => {
       });
 
       await fetchReviews();
+      await updateProductStats(productId);
       return true;
-    } catch (error: any) {
+    }, false, 'Failed to update review');
+
+    if (!result) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update review.',
+        description: 'Failed to update review. Please try again.',
         variant: 'destructive',
       });
-      return false;
     }
+
+    return result;
   };
 
   const deleteReview = async (reviewId: string) => {
     if (!user) return false;
 
-    try {
-      const { error } = await supabase
-        .from('reviews')
-        .delete()
-        .eq('id', reviewId)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+    const result = await handleAsyncError(async () => {
+      await databases.deleteDocument(
+        DATABASE_ID,
+        COLLECTIONS.REVIEWS,
+        reviewId
+      );
 
       toast({
         title: 'Review deleted',
@@ -155,15 +193,19 @@ export const useReviews = (productId: string) => {
       });
 
       await fetchReviews();
+      await updateProductStats(productId);
       return true;
-    } catch (error: any) {
+    }, false, 'Failed to delete review');
+
+    if (!result) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete review.',
+        description: 'Failed to delete review. Please try again.',
         variant: 'destructive',
       });
-      return false;
     }
+
+    return result;
   };
 
   const averageRating = reviews.length > 0

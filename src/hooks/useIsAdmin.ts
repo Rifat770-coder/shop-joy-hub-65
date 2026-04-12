@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { useAuth } from '@/context/AuthContext';
+import { Query } from 'appwrite';
+import { normalizeUserRole } from '@/lib/normalize';
 
 export function useIsAdmin() {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const adminEmails = (import.meta.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map((email: string) => email.trim().toLowerCase())
+    .filter(Boolean);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -15,18 +22,27 @@ export function useIsAdmin() {
         return;
       }
 
+      const isBootstrapAdmin = adminEmails.includes(user.email.toLowerCase());
+
       try {
-        const { data, error } = await supabase.rpc('is_admin');
-        
-        if (error) {
-          console.error('Error checking admin status:', error);
-          setIsAdmin(false);
-        } else {
-          setIsAdmin(data === true);
-        }
+        // Check user role in Appwrite user_roles using normalized field names
+        const response = await databases.listDocuments(
+          DATABASE_ID,
+          COLLECTIONS.USER_ROLES,
+          [Query.equal('userId', user.$id)]
+        );
+
+        // Use normalization utility to handle any field name variations
+        const userRole = response.documents[0]
+          ? normalizeUserRole(response.documents[0])
+          : null;
+
+        setIsAdmin(userRole?.role === 'admin' || isBootstrapAdmin);
       } catch (err) {
         console.error('Error checking admin status:', err);
-        setIsAdmin(false);
+
+        // If role query fails due permissions/migration state, allow configured bootstrap admins.
+        setIsAdmin(isBootstrapAdmin);
       } finally {
         setLoading(false);
       }
@@ -35,7 +51,7 @@ export function useIsAdmin() {
     if (!authLoading) {
       checkAdmin();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, adminEmails]);
 
   return { isAdmin, loading: loading || authLoading };
 }

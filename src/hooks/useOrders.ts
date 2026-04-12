@@ -1,17 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, functions, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Order, OrderItem } from '@/integrations/appwrite/types';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from '@/hooks/use-toast';
-import { CartItem } from '@/types';
-
-interface Order {
-  id: string;
-  items: CartItem[];
-  total: number;
-  status: string;
-  shipping_address: string;
-  created_at: string;
-}
+import { Query } from 'appwrite';
 
 export function useOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -26,25 +18,16 @@ export function useOrders() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.ORDERS,
+        [
+          Query.equal('userId', user.$id),
+          Query.orderDesc('$createdAt')
+        ]
+      );
       
-      // Type the data properly
-      const typedOrders: Order[] = (data || []).map((order) => ({
-        id: order.id,
-        items: (order.items as unknown as CartItem[]) || [],
-        total: Number(order.total),
-        status: order.status,
-        shipping_address: order.shipping_address,
-        created_at: order.created_at,
-      }));
-      
-      setOrders(typedOrders);
+      setOrders(response.documents as Order[]);
     } catch (error) {
       console.error('Error fetching orders:', error);
     } finally {
@@ -57,7 +40,7 @@ export function useOrders() {
   }, [fetchOrders]);
 
   const createOrder = async (
-    items: CartItem[], 
+    items: OrderItem[], 
     shippingAddress: string,
     couponCode?: string
   ) => {
@@ -77,44 +60,40 @@ export function useOrders() {
         quantity: item.quantity,
       }));
 
-      // Use secure edge function for order creation
-      const { data, error } = await supabase.functions.invoke('create-order', {
-        body: {
+      // Use Appwrite function for order creation
+      const response = await functions.createExecution(
+        'create-order', // Function ID
+        JSON.stringify({
           items: orderItems,
           shippingAddress,
           couponCode,
-        },
-      });
+        }),
+        false, // async
+        '/', // path
+        'POST' // method
+      );
 
-      if (error) throw error;
+      const result = JSON.parse(response.responseBody);
 
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create order');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create order');
       }
 
       // Fetch the created order
-      const { data: orderData, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('id', data.orderId)
-        .single();
+      const orderResponse = await databases.getDocument(
+        DATABASE_ID,
+        COLLECTIONS.ORDERS,
+        result.orderId
+      );
 
-      if (fetchError) throw fetchError;
-
-      const newOrder: Order = {
-        id: orderData.id,
-        items: (orderData.items as unknown as CartItem[]) || [],
-        total: Number(orderData.total),
-        status: orderData.status,
-        shipping_address: orderData.shipping_address,
-        created_at: orderData.created_at,
-      };
-
+      const newOrder = orderResponse as Order;
       setOrders((prev) => [newOrder, ...prev]);
+      
       toast({
         title: 'Order placed!',
         description: 'Your order has been successfully placed.',
       });
+      
       return newOrder;
     } catch (error: any) {
       toast({

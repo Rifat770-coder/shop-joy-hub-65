@@ -19,7 +19,7 @@ const Wishlist = () => {
 
   const loading = favoritesLoading || productsLoading;
 
-  // Get full product details for favorites from Supabase products
+  // Get full product details for favorites from the products collection
   const favoriteProducts = products.filter((p) => favorites.includes(p.id));
 
   const handleRemove = (productId: string) => {

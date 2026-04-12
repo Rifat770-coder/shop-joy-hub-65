@@ -5,10 +5,17 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminRoute } from "@/components/AdminRoute";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { ensureValidEnvironment } from "@/lib/env-validation";
+
+import { UserBehaviorTracker } from "@/components/analytics/UserBehaviorTracker";
+
+// Validate environment on app startup
+ensureValidEnvironment();
 
 // Eagerly load the Index page for fast initial render
 import Index from "./pages/Index";
@@ -29,18 +36,27 @@ const AdminAnalytics = lazy(() => import("./pages/admin/AdminAnalytics"));
 const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 const AdminInventory = lazy(() => import("./pages/admin/AdminInventory"));
 const AdminCoupons = lazy(() => import("./pages/admin/AdminCoupons"));
+const AdvancedAnalytics = lazy(() => import("./pages/admin/AdvancedAnalytics"));
+const AdminPaymentApprovals = lazy(() => import("./pages/admin/AdminPaymentApprovals"));
 const OrderHistory = lazy(() => import("./pages/OrderHistory"));
 const OrderTracking = lazy(() => import("./pages/OrderTracking"));
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Checkout = lazy(() => import("./pages/Checkout"));
+const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
 // Simple loading fallback
 const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+  <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-teal-50">
+    <div className="text-center space-y-4">
+      <div className="relative">
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-500 mx-auto"></div>
+        <div className="animate-ping absolute inset-0 rounded-full h-12 w-12 border-4 border-orange-300 opacity-20"></div>
+      </div>
+      <p className="text-gray-600 animate-pulse">Loading amazing products...</p>
+    </div>
   </div>
 );
 
@@ -52,33 +68,44 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <ScrollToTop />
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/products" element={<Products />} />
-                <Route path="/products/:id" element={<ProductDetail />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/deals" element={<Deals />} />
-                <Route path="/cart" element={<Cart />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/orders" element={<OrderHistory />} />
-                <Route path="/orders/:id" element={<OrderTracking />} />
-                <Route path="/wishlist" element={<Wishlist />} />
-                <Route path="/checkout" element={<Checkout />} />
-                <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
-                <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-                <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
-                <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
-                <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
-                <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
-                <Route path="/admin/inventory" element={<AdminRoute><AdminInventory /></AdminRoute>} />
-                <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <UserBehaviorTracker>
+              <ScrollToTop />
+              <div className="animate-fade-in">
+                <ErrorBoundary>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/products" element={<Products />} />
+                    <Route path="/products/:id" element={<ProductDetail />} />
+                    <Route path="/categories" element={<Categories />} />
+                    <Route path="/deals" element={<Deals />} />
+                    <Route path="/cart" element={<Cart />} />
+                    <Route path="/auth" element={<Auth />} />
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/orders" element={<OrderHistory />} />
+                    <Route path="/orders/:id" element={<OrderTracking />} />
+                    <Route path="/wishlist" element={<Wishlist />} />
+                    <Route path="/checkout" element={<Checkout />} />
+                    <Route path="/payment/callback" element={<PaymentCallback />} />
+                    <Route path="/payment/bkash/callback" element={<PaymentCallback />} />
+                    <Route path="/payment/nagad/callback" element={<PaymentCallback />} />
+                    <Route path="/admin" element={<AdminRoute><Dashboard /></AdminRoute>} />
+                    <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+                    <Route path="/admin/orders" element={<AdminRoute><AdminOrders /></AdminRoute>} />
+                    <Route path="/admin/customers" element={<AdminRoute><AdminCustomers /></AdminRoute>} />
+                    <Route path="/admin/analytics" element={<AdminRoute><AdminAnalytics /></AdminRoute>} />
+                    <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+                    <Route path="/admin/inventory" element={<AdminRoute><AdminInventory /></AdminRoute>} />
+                    <Route path="/admin/coupons" element={<AdminRoute><AdminCoupons /></AdminRoute>} />
+                    <Route path="/admin/advanced-analytics" element={<AdminRoute><AdvancedAnalytics /></AdminRoute>} />
+                    <Route path="/admin/payment-approvals" element={<AdminRoute><AdminPaymentApprovals /></AdminRoute>} />
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </Suspense>
+              </ErrorBoundary>
+            </div>
             <MobileBottomNav />
+            </UserBehaviorTracker>
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>

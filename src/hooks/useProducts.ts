@@ -1,21 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Product as AppwriteProduct } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
+import { Query } from 'appwrite';
 
-export interface Product {
+export type Product = AppwriteProduct & {
   id: string;
-  name: string;
-  description: string | null;
-  price: number;
-  image: string | null;
-  category: string;
-  rating: number;
-  reviews: number;
-  stock: number;
-  featured: boolean;
-  created_at: string;
-  updated_at: string;
-}
+  documentId?: string;
+};
 
 export interface ProductInsert {
   name: string;
@@ -27,17 +19,22 @@ export interface ProductInsert {
   featured?: boolean;
 }
 
+const normalizeProduct = (product: AppwriteProduct): Product => ({
+  ...product,
+  id: product.$id,
+  documentId: (product as any).documentId || product.$id,
+});
+
 export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Product[];
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        [Query.orderDesc('$createdAt')]
+      );
+      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
     },
   });
 };
@@ -46,14 +43,15 @@ export const useFeaturedProducts = () => {
   return useQuery({
     queryKey: ['products', 'featured'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('featured', true)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Product[];
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        [
+          Query.equal('featured', true),
+          Query.orderDesc('$createdAt')
+        ]
+      );
+      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
     },
   });
 };
@@ -62,14 +60,15 @@ export const useProductsByCategory = (category: string) => {
   return useQuery({
     queryKey: ['products', 'category', category],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('category', category)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as Product[];
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        [
+          Query.equal('category', category),
+          Query.orderDesc('$createdAt')
+        ]
+      );
+      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
     },
     enabled: !!category,
   });
@@ -79,14 +78,12 @@ export const useProduct = (id: string) => {
   return useQuery({
     queryKey: ['products', id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      return data as Product;
+      const response = await databases.getDocument(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        id
+      );
+      return normalizeProduct(response as AppwriteProduct);
     },
     enabled: !!id,
   });
@@ -97,14 +94,21 @@ export const useAddProduct = () => {
 
   return useMutation({
     mutationFn: async (product: ProductInsert) => {
-      const { data, error } = await supabase
-        .from('products')
-        .insert(product)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as Product;
+      const documentId = crypto.randomUUID();
+      const response = await databases.createDocument(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        documentId,
+        {
+          ...product,
+          documentId,
+          rating: 0,
+          reviews: 0,
+          stock: product.stock || 0,
+          featured: product.featured || false,
+        }
+      );
+      return normalizeProduct(response as AppwriteProduct);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -127,16 +131,19 @@ export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Product> & { id: string }) => {
-      const { data, error } = await supabase
-        .from('products')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
+    mutationFn: async ({ id, $id, ...updates }: Partial<Product> & { id?: string; $id?: string }) => {
+      const targetId = $id || id;
+      if (!targetId) {
+        throw new Error('Missing product document id for update');
+      }
 
-      if (error) throw error;
-      return data as Product;
+      const response = await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        targetId,
+        updates
+      );
+      return normalizeProduct(response as AppwriteProduct);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -160,12 +167,11 @@ export const useDeleteProduct = () => {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await databases.deleteDocument(
+        DATABASE_ID,
+        COLLECTIONS.PRODUCTS,
+        id
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

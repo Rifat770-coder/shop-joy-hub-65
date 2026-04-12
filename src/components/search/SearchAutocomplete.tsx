@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, X, ArrowRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { products } from '@/data/products';
-import { Product } from '@/types';
+import { useProducts, Product } from '@/hooks/useProducts';
+import { useCurrency } from '@/hooks/useCurrency';
+
+type SearchProduct = Product & { originalPrice?: number };
 
 interface SearchAutocompleteProps {
   className?: string;
@@ -11,9 +13,11 @@ interface SearchAutocompleteProps {
 }
 
 export function SearchAutocomplete({ className, placeholder = "Search products..." }: SearchAutocompleteProps) {
+  const { data: products = [] } = useProducts();
+  const { formatCurrency } = useCurrency();
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
-  const [results, setResults] = useState<Product[]>([]);
+  const [results, setResults] = useState<SearchProduct[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -85,7 +89,7 @@ export function SearchAutocomplete({ className, placeholder = "Search products..
     }
   };
 
-  const handleSelectProduct = (product: Product) => {
+  const handleSelectProduct = (product: SearchProduct) => {
     setQuery('');
     setIsOpen(false);
     navigate(`/products/${product.id}`);
@@ -110,23 +114,25 @@ export function SearchAutocomplete({ className, placeholder = "Search products..
     <div className={`relative ${className}`}>
       {/* Search Input */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-500 pointer-events-none" />
         <Input
           ref={inputRef}
           type="text"
+          name="site-search"
+          autoComplete="off"
           placeholder={placeholder}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleKeyDown}
           onFocus={() => query.trim().length >= 2 && results.length > 0 && setIsOpen(true)}
-          className="pl-10 pr-10 bg-secondary border-0 focus-visible:ring-primary"
+          className="h-9 pl-9 pr-9 bg-slate-100 border border-slate-200 rounded-lg text-sm placeholder:text-slate-500 focus-visible:ring-2 focus-visible:ring-teal-500"
         />
         {query && (
           <button
             onClick={clearSearch}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         )}
       </div>
@@ -173,10 +179,10 @@ export function SearchAutocomplete({ className, placeholder = "Search products..
 
                   {/* Price */}
                   <div className="text-right shrink-0">
-                    <p className="font-semibold text-primary">${product.price.toFixed(2)}</p>
+                    <p className="font-semibold text-primary">{formatCurrency(product.price)}</p>
                     {product.originalPrice && (
                       <p className="text-xs text-muted-foreground line-through">
-                        ${product.originalPrice.toFixed(2)}
+                        {formatCurrency(product.originalPrice)}
                       </p>
                     )}
                   </div>

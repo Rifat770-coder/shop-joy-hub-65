@@ -1,30 +1,15 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { databases, functions, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Coupon } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
+import { Query } from 'appwrite';
 
-// Full Coupon type for admin pages (fetched directly from DB by admins)
-export interface Coupon {
-  id: string;
-  code: string;
-  description: string | null;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: number;
-  minimum_order: number;
-  max_uses: number | null;
-  used_count: number;
-  starts_at: string;
-  expires_at: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-// Simplified coupon info returned from secure RPC validation
+// Simplified coupon info returned from validation
 export interface ValidatedCoupon {
   id: string;
   code: string;
-  discount_type: 'percentage' | 'fixed';
-  discount_value: number;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
 }
 
 export interface AppliedCoupon {
@@ -35,11 +20,11 @@ export interface AppliedCoupon {
 interface ValidateCouponResponse {
   valid: boolean;
   message: string;
-  coupon_id?: string;
+  couponId?: string;
   code?: string;
-  discount_type?: string;
-  discount_value?: number;
-  discount_amount?: number;
+  discountType?: string;
+  discountValue?: number;
+  discountAmount?: number;
 }
 
 export function useCoupons() {
@@ -59,15 +44,19 @@ export function useCoupons() {
     setLoading(true);
 
     try {
-      // Use secure RPC function instead of direct SELECT
-      const { data, error } = await supabase.rpc('validate_coupon_code', {
-        p_code: code,
-        p_order_total: orderTotal
-      });
+      // Use Appwrite function for coupon validation
+      const response = await functions.createExecution(
+        'validate-coupon', // Function ID
+        JSON.stringify({
+          code: code,
+          orderTotal: orderTotal
+        }),
+        false, // async
+        '/', // path
+        'POST' // method
+      );
 
-      if (error) throw error;
-
-      const result = data as unknown as ValidateCouponResponse;
+      const result = JSON.parse(response.responseBody) as ValidateCouponResponse;
 
       if (!result.valid) {
         toast({
@@ -80,19 +69,19 @@ export function useCoupons() {
 
       const applied: AppliedCoupon = {
         coupon: {
-          id: result.coupon_id!,
+          id: result.couponId!,
           code: result.code!,
-          discount_type: result.discount_type as 'percentage' | 'fixed',
-          discount_value: result.discount_value!,
+          discountType: result.discountType as 'percentage' | 'fixed',
+          discountValue: result.discountValue!,
         },
-        discountAmount: result.discount_amount!,
+        discountAmount: result.discountAmount!,
       };
 
       setAppliedCoupon(applied);
 
       toast({
         title: 'Coupon applied!',
-        description: `You saved $${result.discount_amount!.toFixed(2)}`,
+        description: `You saved $${result.discountAmount!.toFixed(2)}`,
       });
 
       return applied;
@@ -119,8 +108,14 @@ export function useCoupons() {
 
   const incrementCouponUsage = useCallback(async (couponId: string) => {
     try {
-      // Use the existing RPC function for incrementing usage
-      await supabase.rpc('increment_coupon_usage', { coupon_id: couponId });
+      // Get current coupon and increment usage
+      const coupon = await databases.getDocument(DATABASE_ID, COLLECTIONS.COUPONS, couponId) as Coupon;
+      await databases.updateDocument(
+        DATABASE_ID,
+        COLLECTIONS.COUPONS,
+        couponId,
+        { usedCount: coupon.usedCount + 1 }
+      );
     } catch (error) {
       console.error('Error incrementing coupon usage:', error);
     }

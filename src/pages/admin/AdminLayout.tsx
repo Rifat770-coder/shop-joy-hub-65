@@ -11,6 +11,7 @@ import {
   LogOut,
   Boxes,
   Tag,
+  Smartphone,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -28,9 +29,11 @@ const navItems = [
   { href: '/admin/products', icon: Package, label: 'Products' },
   { href: '/admin/inventory', icon: Boxes, label: 'Inventory' },
   { href: '/admin/orders', icon: ShoppingCart, label: 'Orders' },
+  { href: '/admin/payment-approvals', icon: Smartphone, label: 'Payment Approvals' },
   { href: '/admin/customers', icon: Users, label: 'Customers' },
   { href: '/admin/coupons', icon: Tag, label: 'Coupons' },
   { href: '/admin/analytics', icon: BarChart3, label: 'Analytics' },
+  { href: '/admin/advanced-analytics', icon: BarChart3, label: 'Advanced Analytics' },
   { href: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -46,7 +49,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <span className="text-lg font-bold text-primary-foreground">S</span>
           </div>
           <div>
-            <span className="text-lg font-bold">ShopHub</span>
+            <span className="text-lg font-bold">RealGadget BD</span>
             <p className="text-xs text-muted-foreground">Admin Panel</p>
           </div>
         </Link>

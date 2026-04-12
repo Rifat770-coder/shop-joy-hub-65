@@ -4,7 +4,6 @@ import { Filter, SlidersHorizontal, Star, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
-import { categories } from '@/data/products';
 import { useProducts } from '@/hooks/useProducts';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -92,7 +91,7 @@ const Products = () => {
         filtered.sort((a, b) => Number(b.rating) - Number(a.rating));
         break;
       case 'newest':
-        filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+        filtered.sort((a, b) => new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime());
         break;
       default:
         filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
@@ -100,6 +99,21 @@ const Products = () => {
 
     return filtered;
   }, [products, searchQuery, selectedCategories, sortBy, priceRange, minRating, inStockOnly]);
+
+  const categoryStats = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const product of products) {
+      counts.set(product.category, (counts.get(product.category) || 0) + 1);
+    }
+
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({
+        id: name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
+        name,
+        productCount: count,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
 
   const toggleCategory = (category: string) => {
     setSelectedCategories((prev) =>
@@ -122,7 +136,7 @@ const Products = () => {
       <div>
         <h3 className="font-semibold mb-4">Categories</h3>
         <div className="space-y-3">
-          {categories.map((category) => (
+          {categoryStats.map((category) => (
             <label
               key={category.id}
               className="flex items-center gap-3 cursor-pointer"
@@ -319,7 +333,7 @@ const Products = () => {
             {/* Products Grid */}
             <div className="flex-1">
               {filteredProducts.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                   {filteredProducts.map((product, index) => (
                     <div
                       key={product.id}
