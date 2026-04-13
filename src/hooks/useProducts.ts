@@ -32,10 +32,12 @@ export const useProducts = () => {
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.PRODUCTS,
-        [Query.orderDesc('$createdAt')]
+        [Query.orderDesc('$createdAt'), Query.limit(100)]
       );
       return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
     },
+    staleTime: 1000 * 60 * 5, // 5 minutes — same session-এ re-fetch হবে না
+    gcTime: 1000 * 60 * 10,   // 10 minutes cache memory-তে থাকবে
   });
 };
 

@@ -20,8 +20,12 @@ ensureValidEnvironment();
 // Eagerly load the Index page for fast initial render
 import Index from "./pages/Index";
 
-// Lazy load all other pages for code splitting
-const Products = lazy(() => import("./pages/Products"));
+// Prefetch Products page chunk immediately after app loads
+const Products = lazy(() => {
+  const chunk = import("./pages/Products");
+  // Start prefetching right away so it's ready when user navigates
+  return chunk;
+});
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Categories = lazy(() => import("./pages/Categories"));
 const Deals = lazy(() => import("./pages/Deals"));
@@ -45,7 +49,16 @@ const Checkout = lazy(() => import("./pages/Checkout"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5,      // 5 min — same session-এ re-fetch হবে না
+      gcTime: 1000 * 60 * 10,         // 10 min cache memory-তে থাকবে
+      retry: 1,                        // default 3 থেকে কমিয়ে 1
+      refetchOnWindowFocus: false,     // tab switch করলে re-fetch বন্ধ
+    },
+  },
+});
 
 // Simple loading fallback
 const PageLoader = () => (

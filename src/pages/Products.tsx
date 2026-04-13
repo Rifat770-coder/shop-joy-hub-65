@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Filter, SlidersHorizontal, Star, Loader2 } from 'lucide-react';
+import { Filter, SlidersHorizontal, Star } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
@@ -247,17 +247,16 @@ const Products = () => {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </main>
-        <Footer />
+  const SkeletonCard = () => (
+    <div className="rounded-xl border border-border bg-card overflow-hidden animate-pulse">
+      <div className="bg-muted h-48 w-full" />
+      <div className="p-4 space-y-2">
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-3 bg-muted rounded w-1/2" />
+        <div className="h-5 bg-muted rounded w-1/3 mt-2" />
       </div>
-    );
-  }
+    </div>
+  );
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -332,14 +331,14 @@ const Products = () => {
 
             {/* Products Grid */}
             <div className="flex-1">
-              {filteredProducts.length > 0 ? (
+              {isLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
-                  {filteredProducts.map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="animate-fade-in"
-                      style={{ animationDelay: `${index * 0.05}s` }}
-                    >
+                  {Array.from({ length: 12 }).map((_, i) => <SkeletonCard key={i} />)}
+                </div>
+              ) : filteredProducts.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
+                  {filteredProducts.map((product) => (
+                    <div key={product.id} className="animate-fade-in">
                       <ProductCard product={product as any} />
                     </div>
                   ))}
