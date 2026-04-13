@@ -184,32 +184,36 @@ const OrderTracking = () => {
   useEffect(() => {
     if (!id) return;
 
-    const subscription = realtime.subscribe(
-      `databases.${DATABASE_ID}.collections.${COLLECTIONS.ORDERS}.documents.${id}`,
-      (response) => {
-        if (response.events.includes('databases.*.collections.*.documents.*.update')) {
-          const updatedData = response.payload;
-          setOrder((prev) => {
-            if (!prev) return prev;
-            return {
-              ...prev,
-              status: updatedData.status,
-              updated_at: updatedData.$updatedAt,
-            };
-          });
-          toast({
-            title: 'Order Updated',
-            description: `Order status changed to ${statusConfig[updatedData.status]?.label || updatedData.status}`,
-          });
+    let unsubscribe: (() => void) | null = null;
+
+    try {
+      unsubscribe = realtime.subscribe(
+        `databases.${DATABASE_ID}.collections.${COLLECTIONS.ORDERS}.documents.${id}`,
+        (response) => {
+          if (response.events.includes('databases.*.collections.*.documents.*.update')) {
+            const updatedData = response.payload as Record<string, unknown>;
+            setOrder((prev) => {
+              if (!prev) return prev;
+              return {
+                ...prev,
+                status: updatedData.status as string,
+                updated_at: updatedData.$updatedAt as string,
+              };
+            });
+            toast({
+              title: 'Order Updated',
+              description: `Order status changed to ${statusConfig[updatedData.status as string]?.label || updatedData.status}`,
+            });
+          }
         }
-      }
-    );
+      );
+    } catch (err) {
+      console.warn('Realtime subscription failed:', err);
+    }
 
     return () => {
-      if (typeof subscription === 'function') {
-        subscription();
-      } else if (subscription && typeof subscription.unsubscribe === 'function') {
-        subscription.unsubscribe();
+      if (typeof unsubscribe === 'function') {
+        try { unsubscribe(); } catch {}
       }
     };
   }, [id]);
@@ -320,7 +324,7 @@ const OrderTracking = () => {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 text-muted-foreground animate-spin-slow" />
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm text-muted-foreground">Live updates enabled</span>
             </div>
           </div>
