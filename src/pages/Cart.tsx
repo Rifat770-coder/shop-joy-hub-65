@@ -9,6 +9,8 @@ import { Separator } from '@/components/ui/separator';
 import { CouponInput } from '@/components/cart/CouponInput';
 import { AppliedCoupon } from '@/hooks/useCoupons';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { getPrimaryImage } from '@/lib/image-utils';
+import { useCurrency } from '@/hooks/useCurrency';
 
 interface TaxSettings {
   enableTax: boolean;
@@ -35,6 +37,7 @@ const parseSettingValue = <T,>(value: unknown, fallback: T): T => {
 
 const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
+  const { formatCurrency } = useCurrency();
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
   const [taxSettings, setTaxSettings] = useState<TaxSettings>({
     enableTax: false,
@@ -139,9 +142,10 @@ const Cart = () => {
                   className="flex gap-4 bg-card rounded-xl border border-border p-4"
                 >
                   <img
-                    src={item.product.image}
+                    src={getPrimaryImage(item.product.image)}
                     alt={item.product.name}
-                    className="w-24 h-24 object-cover rounded-lg"
+                    className="w-24 h-24 object-cover rounded-lg shrink-0"
+                    onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
                   />
                   <div className="flex-1 min-w-0">
                     <Link
@@ -181,7 +185,7 @@ const Cart = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <span className="font-bold text-primary">
-                          ${(item.product.price * item.quantity).toFixed(2)}
+                          {formatCurrency(item.product.price * item.quantity)}
                         </span>
                         <Button
                           variant="ghost"
@@ -215,7 +219,7 @@ const Cart = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${totalPrice.toFixed(2)}</span>
+                    <span>{formatCurrency(totalPrice)}</span>
                   </div>
                   
                   {/* Coupon Input */}
@@ -228,7 +232,7 @@ const Cart = () => {
                   {appliedCoupon && (
                     <div className="flex justify-between text-sm text-success">
                       <span>Discount</span>
-                      <span>-${discountAmount.toFixed(2)}</span>
+                      <span>-{formatCurrency(discountAmount)}</span>
                     </div>
                   )}
                   
@@ -243,7 +247,7 @@ const Cart = () => {
                       {taxSettings.taxName} {taxSettings.enableTax && `(${taxSettings.taxRate}%)`}
                     </span>
                     <span>
-                      {taxSettings.enableTax ? `$${tax.toFixed(2)}` : 'Not applicable'}
+                      {taxSettings.enableTax ? formatCurrency(tax) : 'Not applicable'}
                     </span>
                   </div>
                 </div>
@@ -253,7 +257,7 @@ const Cart = () => {
                 <div className="flex justify-between font-semibold text-lg mb-6">
                   <span>Total</span>
                   <span className="text-primary">
-                    ${finalTotal.toFixed(2)}
+                    {formatCurrency(finalTotal)}
                   </span>
                 </div>
 

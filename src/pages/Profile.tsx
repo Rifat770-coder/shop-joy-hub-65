@@ -264,7 +264,7 @@ const Profile = () => {
                               </p>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="font-bold text-sm sm:text-base">${order.total.toFixed(2)}</p>
+                              <p className="font-bold text-sm sm:text-base">{order.total.toFixed(2)} BDT</p>
                               <Badge className={`${getStatusColor(order.status)} border text-xs`}>
                                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                               </Badge>

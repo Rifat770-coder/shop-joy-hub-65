@@ -446,7 +446,7 @@ export default function AdminInventory() {
                           />
                           <div>
                             <p className="font-medium line-clamp-1">{product.name}</p>
-                            <p className="text-xs text-muted-foreground">${product.price.toFixed(2)}</p>
+                            <p className="text-xs text-muted-foreground">{product.price.toFixed(2)} BDT</p>
                           </div>
                         </div>
                       </TableCell>
@@ -499,7 +499,7 @@ export default function AdminInventory() {
                       </TableCell>
                       <TableCell>
                         <span className="font-medium">
-                          ${(product.price * product.currentStock).toFixed(2)}
+                          {(product.price * product.currentStock).toFixed(2)} BDT
                         </span>
                       </TableCell>
                       <TableCell className="text-right">

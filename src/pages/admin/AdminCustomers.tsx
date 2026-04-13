@@ -318,7 +318,7 @@ export default function AdminCustomers() {
               <span className="text-muted-foreground">$</span>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+              <div className="text-2xl font-bold">{totalRevenue.toFixed(2)} BDT</div>
             </CardContent>
           </Card>
         </div>
@@ -445,7 +445,7 @@ export default function AdminCustomers() {
                               <Badge variant="secondary">{customer.orders.length}</Badge>
                             </TableCell>
                             <TableCell>
-                              <span className="font-medium">${totalSpent.toFixed(2)}</span>
+                              <span className="font-medium">{totalSpent.toFixed(2)} BDT</span>
                             </TableCell>
                             <TableCell>
                               <span className="text-sm text-muted-foreground">
@@ -517,7 +517,7 @@ export default function AdminCustomers() {
                                               order.status.slice(1)}
                                           </Badge>
                                           <span className="font-semibold">
-                                            ${Number(order.total).toFixed(2)}
+                                            {Number(order.total).toFixed(2)} BDT
                                           </span>
                                         </div>
                                       </div>

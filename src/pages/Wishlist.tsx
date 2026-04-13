@@ -10,12 +10,14 @@ import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
 import { useProducts } from '@/hooks/useProducts';
 import { Product } from '@/types';
+import { useCurrency } from '@/hooks/useCurrency';
 
 const Wishlist = () => {
   const { user } = useAuth();
   const { favorites, loading: favoritesLoading, toggleFavorite } = useFavorites();
   const { data: products = [], isLoading: productsLoading } = useProducts();
   const { addToCart } = useCart();
+  const { formatCurrency } = useCurrency();
 
   const loading = favoritesLoading || productsLoading;
 
@@ -134,7 +136,7 @@ const Wishlist = () => {
                       {/* Price */}
                       <div className="flex items-baseline gap-2 mb-4">
                         <span className="text-lg font-bold text-primary">
-                          ${product.price.toFixed(2)}
+                          {formatCurrency(product.price)}
                         </span>
                       </div>
 

@@ -81,7 +81,7 @@ export default function Dashboard() {
     return [
       {
         title: 'Total Revenue',
-        value: `$${totalRevenue.toFixed(2)}`,
+        value: `${totalRevenue.toFixed(2)} BDT`,
         icon: DollarSign,
       },
       {
@@ -117,7 +117,7 @@ export default function Dashboard() {
       .map((order) => ({
         id: order.$id,
         customer: order.userId ? profileNameByUserId.get(order.userId) || 'Customer' : 'Customer',
-        total: `$${Number(order.total || 0).toFixed(2)}`,
+        total: `${Number(order.total || 0).toFixed(2)} BDT`,
         status: order.status || 'pending',
       }));
   }, [orders, profileNameByUserId]);
@@ -228,7 +228,7 @@ export default function Dashboard() {
                       <p className="text-sm text-muted-foreground">{product.category}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">${product.price.toFixed(2)}</p>
+                      <p className="font-medium">{product.price.toFixed(2)} BDT</p>
                       <p className="text-sm text-muted-foreground">{product.stock} in stock</p>
                     </div>
                   </div>

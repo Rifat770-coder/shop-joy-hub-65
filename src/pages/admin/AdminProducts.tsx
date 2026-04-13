@@ -485,7 +485,7 @@ export default function AdminProducts() {
                     <Badge variant="secondary">{product.category}</Badge>
                   </TableCell>
                   <TableCell className="font-medium">
-                    ${Number(product.price).toFixed(2)}
+                    {Number(product.price).toFixed(2)} BDT
                   </TableCell>
                   <TableCell>
                     <span

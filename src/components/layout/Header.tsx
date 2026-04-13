@@ -63,20 +63,22 @@ export function Header() {
           {user && (
             <Link to="/wishlist" aria-label="Wishlist">
               <Button variant="ghost" size="icon" className="hidden sm:flex h-9 w-9 text-muted-foreground hover:text-foreground">
-                <Heart className="h-4.5 w-4.5" />
+                <Heart className="h-5 w-5" />
               </Button>
             </Link>
           )}
 
           <Link to="/cart" aria-label="Cart">
-            <Button variant="ghost" size="icon" className="relative h-9 w-9 text-muted-foreground hover:text-foreground">
-              <ShoppingCart className="h-4.5 w-4.5" />
+            <div className="relative inline-flex">
+              <Button variant="ghost" size="icon" className="h-9 w-9 text-muted-foreground hover:text-foreground">
+                <ShoppingCart className="h-5 w-5" />
+              </Button>
               {totalItems > 0 && (
-                <span className="absolute -right-0.5 -top-0.5 min-w-[18px] h-[18px] rounded-full px-1 flex items-center justify-center text-[10px] font-bold bg-primary text-white border-2 border-white">
+                <span className="absolute -right-1 -top-1 min-w-[18px] h-[18px] rounded-full px-1 flex items-center justify-center text-[10px] font-bold bg-primary text-white border-2 border-white pointer-events-none z-10">
                   {totalItems}
                 </span>
               )}
-            </Button>
+            </div>
           </Link>
 
           {user ? (

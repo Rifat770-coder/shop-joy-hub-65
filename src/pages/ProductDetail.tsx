@@ -341,7 +341,9 @@ const ProductDetail = () => {
           <Tabs defaultValue="description" className="mb-16">
             <TabsList className="w-full max-w-md grid grid-cols-3">
               <TabsTrigger value="description">Description</TabsTrigger>
-              <TabsTrigger value="reviews">Reviews ({reviews.length})</TabsTrigger>
+              <TabsTrigger value="reviews">
+                Reviews ({reviewsLoading ? product.reviews : reviews.length})
+              </TabsTrigger>
               <TabsTrigger value="shipping">Shipping</TabsTrigger>
             </TabsList>
 

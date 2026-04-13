@@ -520,7 +520,7 @@ export default function AdminOrders() {
                       {new Date(order.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell className="font-medium">
-                      ${Number(order.total).toFixed(2)}
+                      {Number(order.total).toFixed(2)} BDT
                     </TableCell>
                     <TableCell>
                       <Badge className={`${getStatusColor(order.status)} border`}>
