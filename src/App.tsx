@@ -17,18 +17,12 @@ import { UserBehaviorTracker } from "@/components/analytics/UserBehaviorTracker"
 // Validate environment on app startup
 ensureValidEnvironment();
 
-// Eagerly load the Index page for fast initial render
+// Eagerly load the Index and Products pages — most visited routes
 import Index from "./pages/Index";
-
-// Prefetch Products page chunk immediately after app loads
-const Products = lazy(() => {
-  const chunk = import("./pages/Products");
-  // Start prefetching right away so it's ready when user navigates
-  return chunk;
-});
+import Products from "./pages/Products";
+import Deals from "./pages/Deals";
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Categories = lazy(() => import("./pages/Categories"));
-const Deals = lazy(() => import("./pages/Deals"));
 const Cart = lazy(() => import("./pages/Cart"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -63,13 +57,7 @@ const queryClient = new QueryClient({
 // Simple loading fallback
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-orange-50 to-teal-50">
-    <div className="text-center space-y-4">
-      <div className="relative">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-500 mx-auto"></div>
-        <div className="animate-ping absolute inset-0 rounded-full h-12 w-12 border-4 border-orange-300 opacity-20"></div>
-      </div>
-      <p className="text-gray-600 animate-pulse">Loading amazing products...</p>
-    </div>
+    <div className="animate-spin rounded-full h-10 w-10 border-4 border-orange-200 border-t-orange-500" />
   </div>
 );
 

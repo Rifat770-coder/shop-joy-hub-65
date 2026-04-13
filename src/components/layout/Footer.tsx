@@ -84,11 +84,12 @@ export function Footer() {
             </p>
             <div className="flex gap-2">
               {[
-                { icon: Facebook, href: "#", label: "Facebook" },
-                { icon: Instagram, href: "#", label: "Instagram" },
-                { icon: Youtube, href: "#", label: "Youtube" },
-              ].map(({ icon: Icon, href, label }) => (
+                { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61572043347708", label: "Facebook", newTab: true },
+                { icon: Instagram, href: "#", label: "Instagram", newTab: false },
+                { icon: Youtube, href: "#", label: "Youtube", newTab: false },
+              ].map(({ icon: Icon, href, label, newTab }) => (
                 <a key={label} href={href} aria-label={label}
+                  {...(newTab ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   className="h-8 w-8 flex items-center justify-center rounded-lg bg-slate-800 text-slate-400 hover:bg-orange-500 hover:text-white transition-colors">
                   <Icon className="h-4 w-4" />
                 </a>
