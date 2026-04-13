@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Models } from 'appwrite';
-import { account } from '@/integrations/appwrite/config';
+import { Models, ID, Query } from 'appwrite';
+import { account, databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 
 interface AuthContextType {
   user: Models.User<Models.Preferences> | null;
@@ -39,11 +39,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await account.create('unique()', email, password, fullName);
       
       // Sign in after successful registration
-      const session = await account.createEmailPasswordSession(email, password);
+      await account.createEmailPasswordSession(email, password);
       
       // Get user data
       const userData = await account.get();
       setUser(userData);
+
+      // Auto-create profile with fullName so Profile Settings is pre-filled
+      if (fullName?.trim()) {
+        try {
+          // Check if profile already exists (shouldn't, but be safe)
+          const existing = await databases.listDocuments(
+            DATABASE_ID,
+            COLLECTIONS.PROFILES,
+            [Query.equal('userId', userData.$id)]
+          );
+          if (existing.documents.length === 0) {
+            await databases.createDocument(
+              DATABASE_ID,
+              COLLECTIONS.PROFILES,
+              ID.unique(),
+              {
+                userId: userData.$id,
+                fullName: fullName.trim(),
+                username: '',
+                phone: '',
+                shippingAddress: '',
+              }
+            );
+          }
+        } catch (profileError) {
+          // Non-fatal — profile can be set later from Profile Settings
+          console.warn('Profile auto-create failed:', profileError);
+        }
+      }
       
       return { error: null };
     } catch (error) {

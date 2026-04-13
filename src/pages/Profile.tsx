@@ -187,22 +187,23 @@ const Profile = () => {
       <main className="flex-1 py-8">
         <div className="container max-w-5xl">
           {/* Profile Header */}
-          <div className="flex items-center gap-6 mb-8">
-            <Avatar className="h-20 w-20">
+          <div className="flex flex-col sm:flex-row items-center sm:items-center gap-4 mb-8">
+            <Avatar className="h-16 w-16 sm:h-20 sm:w-20 shrink-0">
               <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback className="text-2xl gradient-primary text-primary-foreground">
+              <AvatarFallback className="text-xl sm:text-2xl gradient-primary text-primary-foreground">
                 {profile.full_name?.charAt(0) || user.email?.charAt(0)?.toUpperCase()}
               </AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold">
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">
                 {profile.full_name || 'Your Profile'}
               </h1>
-              <p className="text-muted-foreground">{user.email}</p>
+              <p className="text-muted-foreground text-sm truncate">{user.email}</p>
             </div>
             <Button
               variant="outline"
-              className="ml-auto gap-2"
+              size="sm"
+              className="gap-2 w-full sm:w-auto"
               onClick={handleSignOut}
             >
               <LogOut className="h-4 w-4" />
@@ -211,18 +212,18 @@ const Profile = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3 max-w-md">
-              <TabsTrigger value="orders" className="gap-2">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="orders" className="gap-1 text-xs sm:text-sm">
                 <Package className="h-4 w-4" />
-                Orders
+                <span>Orders</span>
               </TabsTrigger>
-              <TabsTrigger value="favorites" className="gap-2">
+              <TabsTrigger value="favorites" className="gap-1 text-xs sm:text-sm">
                 <Heart className="h-4 w-4" />
-                Favorites
+                <span>Favorites</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
+              <TabsTrigger value="settings" className="gap-1 text-xs sm:text-sm">
                 <Settings className="h-4 w-4" />
-                Settings
+                <span>Settings</span>
               </TabsTrigger>
             </TabsList>
 
@@ -252,19 +253,19 @@ const Profile = () => {
                       {orders.map((order) => (
                         <div
                           key={order.$id}
-                          className="p-4 border border-border rounded-lg space-y-3"
+                          className="p-3 sm:p-4 border border-border rounded-lg space-y-3"
                         >
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="font-medium">Order #{order.$id.slice(0, 8)}</p>
-                              <p className="text-sm text-muted-foreground">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="font-medium text-sm sm:text-base">Order #{order.$id.slice(0, 8)}</p>
+                              <p className="text-xs sm:text-sm text-muted-foreground">
                                 {new Date(order.$createdAt).toLocaleDateString()} •{' '}
                                 {order.items.length} items
                               </p>
                             </div>
-                            <div className="text-right">
-                              <p className="font-bold">${order.total.toFixed(2)}</p>
-                              <Badge className={`${getStatusColor(order.status)} border`}>
+                            <div className="text-right shrink-0">
+                              <p className="font-bold text-sm sm:text-base">${order.total.toFixed(2)}</p>
+                              <Badge className={`${getStatusColor(order.status)} border text-xs`}>
                                 {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                               </Badge>
                             </div>
@@ -272,15 +273,15 @@ const Profile = () => {
 
                           {/* Order Actions */}
                           <div className="pt-3 border-t border-border">
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                <MapPin className="h-4 w-4" />
-                                <span className="truncate max-w-[200px]">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground min-w-0">
+                                <MapPin className="h-4 w-4 shrink-0" />
+                                <span className="truncate">
                                   {order.shippingAddress.split('\n')[0]}
                                 </span>
                               </div>
-                              <Link to={`/orders/${order.$id}`}>
-                                <Button variant="outline" size="sm" className="gap-2">
+                              <Link to={`/orders/${order.$id}`} className="shrink-0">
+                                <Button variant="outline" size="sm" className="gap-2 w-full sm:w-auto">
                                   <Truck className="h-4 w-4" />
                                   Track Order
                                 </Button>
@@ -317,7 +318,7 @@ const Profile = () => {
                       </Button>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                       {favoriteProducts.map((product) => (
                         <ProductCard key={product.id} product={product} />
                       ))}
@@ -338,7 +339,7 @@ const Profile = () => {
                     <p className="text-muted-foreground">Loading profile...</p>
                   ) : (
                     <>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                         <div className="space-y-2">
                           <Label htmlFor="userId">User ID</Label>
                           <div className="flex gap-2">
@@ -346,11 +347,13 @@ const Profile = () => {
                               id="userId"
                               value={user.$id}
                               readOnly
-                              className="bg-muted"
+                              className="bg-muted text-xs sm:text-sm min-w-0"
                             />
                             <Button
                               type="button"
                               variant="outline"
+                              size="sm"
+                              className="shrink-0"
                               onClick={async () => {
                                 try {
                                   await navigator.clipboard.writeText(user.$id);
