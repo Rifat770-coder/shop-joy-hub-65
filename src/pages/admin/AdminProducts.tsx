@@ -59,6 +59,7 @@ export default function AdminProducts() {
     name: '',
     description: '',
     price: '',
+    originalPrice: '',
     category: '',
     stock: '',
   });
@@ -88,12 +89,13 @@ export default function AdminProducts() {
       name: newProduct.name,
       description: newProduct.description || undefined,
       price: parseFloat(newProduct.price),
+      originalPrice: newProduct.originalPrice ? parseFloat(newProduct.originalPrice) : undefined,
       category: newProduct.category,
       stock: parseInt(newProduct.stock) || 0,
       image: imageValue,
     });
 
-    setNewProduct({ name: '', description: '', price: '', category: '', stock: '' });
+    setNewProduct({ name: '', description: '', price: '', originalPrice: '', category: '', stock: '' });
     setNewImageUrls(['']);
     setIsAddDialogOpen(false);
   };
@@ -116,6 +118,7 @@ export default function AdminProducts() {
       name: editingProduct.name,
       description: editingProduct.description,
       price: editingProduct.price,
+      originalPrice: editingProduct.originalPrice ?? undefined,
       category: editingProduct.category,
       stock: editingProduct.stock,
       image: imageValue,
@@ -187,7 +190,7 @@ export default function AdminProducts() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="price">Price *</Label>
+                    <Label htmlFor="price">Sale Price *</Label>
                     <Input
                       id="price"
                       type="number"
@@ -198,6 +201,20 @@ export default function AdminProducts() {
                       placeholder="0.00"
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="originalPrice">Original Price (MRP)</Label>
+                    <Input
+                      id="originalPrice"
+                      type="number"
+                      value={newProduct.originalPrice}
+                      onChange={(e) =>
+                        setNewProduct({ ...newProduct, originalPrice: e.target.value })
+                      }
+                      placeholder="0.00 (optional)"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="stock">Stock</Label>
                     <Input
@@ -313,7 +330,7 @@ export default function AdminProducts() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label htmlFor="edit-price">Price *</Label>
+                    <Label htmlFor="edit-price">Sale Price *</Label>
                     <Input
                       id="edit-price"
                       type="number"
@@ -324,6 +341,20 @@ export default function AdminProducts() {
                       placeholder="0.00"
                     />
                   </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-originalPrice">Original Price (MRP)</Label>
+                    <Input
+                      id="edit-originalPrice"
+                      type="number"
+                      value={editingProduct.originalPrice ?? ''}
+                      onChange={(e) =>
+                        setEditingProduct({ ...editingProduct, originalPrice: e.target.value ? parseFloat(e.target.value) : undefined })
+                      }
+                      placeholder="0.00 (optional)"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
                     <Label htmlFor="edit-stock">Stock</Label>
                     <Input

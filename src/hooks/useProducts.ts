@@ -13,6 +13,7 @@ export interface ProductInsert {
   name: string;
   description?: string;
   price: number;
+  originalPrice?: number;
   image?: string;
   category: string;
   stock?: number;
@@ -108,6 +109,7 @@ export const useAddProduct = () => {
           reviews: 0,
           stock: product.stock || 0,
           featured: product.featured || false,
+          originalPrice: product.originalPrice || null,
         }
       );
       return normalizeProduct(response as AppwriteProduct);

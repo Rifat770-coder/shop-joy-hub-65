@@ -43,11 +43,11 @@ export function ProductCard({ product }: ProductCardProps) {
           />
         </Link>
 
-        {/* Discount badge */}
+        {/* Discount badge — top right, green, like image */}
         {discount > 0 && (
-          <Badge className="absolute top-2 left-2 bg-red-500 text-white border-0 text-[10px] font-bold px-1.5 py-0.5">
-            -{discount}%
-          </Badge>
+          <div className="absolute top-2 right-2 bg-emerald-500 text-white text-[11px] font-bold px-2 py-1 rounded-full z-10 shadow">
+            {discount}% OFF
+          </div>
         )}
 
         {/* Wishlist */}
@@ -100,7 +100,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="flex items-baseline gap-2">
           <span className="text-base font-black text-primary">{formatCurrency(product.price)}</span>
-          {product.originalPrice && (
+          {product.originalPrice && Number(product.originalPrice) > Number(product.price) && (
             <span className="text-xs text-muted-foreground line-through">{formatCurrency(product.originalPrice)}</span>
           )}
         </div>
