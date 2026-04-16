@@ -228,7 +228,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[95vh] overflow-y-auto">
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
         {/* Close */}
         <button onClick={onClose} className="absolute top-3 right-3 z-10 p-1 rounded-full hover:bg-gray-100">
           <X className="h-5 w-5 text-gray-500" />
@@ -236,7 +236,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
 
         {/* ── STEP 1: ORDER FORM ── */}
         {step === 'form' && (
-          <div className="p-5 space-y-4">
+          <div className="overflow-y-auto flex-1 p-5 space-y-4 pb-6">
             {/* Name */}
             <div className="flex items-center gap-3 border border-green-300 rounded-full px-4 py-2.5">
               <User className="h-5 w-5 text-green-500 shrink-0" />
@@ -349,7 +349,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
 
         {/* ── STEP 2: SELECT bKash / Nagad ── */}
         {step === 'payment-select' && (
-          <div className="p-5 space-y-4">
+          <div className="overflow-y-auto flex-1 p-5 space-y-4 pb-6">
             <button onClick={() => setStep('form')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
               <ArrowLeft className="h-4 w-4" /> ফিরে যান
             </button>
@@ -389,7 +389,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
 
         {/* ── STEP 3: TRANSACTION ID ── */}
         {step === 'payment-txn' && (
-          <div className="p-5 space-y-4">
+          <div className="overflow-y-auto flex-1 p-5 space-y-4 pb-6">
             <button onClick={() => setStep('payment-select')} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
               <ArrowLeft className="h-4 w-4" /> ফিরে যান
             </button>
