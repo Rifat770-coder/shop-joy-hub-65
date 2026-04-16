@@ -225,10 +225,10 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
-      <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col" style={{ maxHeight: '90dvh' }}>
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl flex flex-col" style={{ maxHeight: '85dvh', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* Close */}
         <button onClick={onClose} className="absolute top-3 right-3 z-10 p-1 rounded-full hover:bg-gray-100">
           <X className="h-5 w-5 text-gray-500" />
@@ -236,7 +236,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
 
         {/* ── STEP 1: ORDER FORM ── */}
         {step === 'form' && (
-          <div className="overflow-y-auto flex-1 p-5 space-y-4 pb-6">
+          <div className="overflow-y-auto flex-1 p-5 space-y-4" style={{ paddingBottom: '1.5rem' }}>
             {/* Name */}
             <div className="flex items-center gap-3 border border-green-300 rounded-full px-4 py-2.5">
               <User className="h-5 w-5 text-green-500 shrink-0" />
