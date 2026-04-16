@@ -23,7 +23,8 @@ export function useOrders() {
         COLLECTIONS.ORDERS,
         [
           Query.equal('userId', user.$id),
-          Query.orderDesc('$createdAt')
+          Query.orderDesc('$createdAt'),
+          Query.limit(200),
         ]
       );
       

@@ -53,10 +53,19 @@ type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancell
 type PaymentStatus = 'pending' | 'authorized' | 'paid' | 'failed' | 'refunded';
 
 const normalizeOrder = (doc: Record<string, unknown>): DbOrder => {
+  // Parse items — could be array or JSON string
+  let parsedItems = [];
+  const rawItems = doc.items;
+  if (Array.isArray(rawItems)) {
+    parsedItems = rawItems;
+  } else if (typeof rawItems === 'string') {
+    try { parsedItems = JSON.parse(rawItems); } catch { parsedItems = []; }
+  }
+
   return {
     id: (doc.$id as string) || (doc.id as string),
     user_id: (doc.userId as string) || (doc.user_id as string) || '',
-    items: doc.items ?? [],
+    items: parsedItems,
     total: Number(doc.total || 0),
     status: (doc.status as string) || 'pending',
     payment_method: ((doc.paymentMethod as string) || (doc.payment_method as string) || 'cod').toLowerCase(),
@@ -167,7 +176,7 @@ export default function AdminOrders() {
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.ORDERS,
-        []
+        [Query.orderDesc('$createdAt'), Query.limit(500)]
       );
 
       const sortedOrders = response.documents

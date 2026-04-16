@@ -9,6 +9,7 @@ import {
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Query } from 'appwrite';
 
 interface DashboardOrder {
   $id: string;
@@ -57,9 +58,9 @@ export default function Dashboard() {
     const fetchDashboardData = async () => {
       try {
         const [ordersRes, productsRes, profilesRes] = await Promise.all([
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS),
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.PRODUCTS),
-          databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES),
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [Query.limit(500), Query.orderDesc('$createdAt')]),
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.PRODUCTS, [Query.limit(500)]),
+          databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, [Query.limit(500)]),
         ]);
 
         setOrders(ordersRes.documents as unknown as DashboardOrder[]);

@@ -103,7 +103,7 @@ const AdminCoupons = () => {
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.COUPONS,
-        []
+        [Query.limit(500)]
       );
 
       const sortedCoupons = response.documents

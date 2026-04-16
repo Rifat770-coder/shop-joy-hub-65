@@ -84,7 +84,7 @@ export default function TrackOrder() {
       try {
         const { Query } = await import('appwrite');
         const res = await databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [
-          Query.limit(25),
+          Query.limit(100),
           Query.orderDesc('$createdAt'),
         ]);
         // Match by $id starting with the trimmed input (case-insensitive)

@@ -37,6 +37,7 @@ import {
   Legend,
 } from 'recharts';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { Query } from 'appwrite';
 
 interface Order {
   id: string;
@@ -68,8 +69,8 @@ export default function AdminAnalytics() {
     setLoading(true);
     try {
       const [ordersRes, profilesRes] = await Promise.all([
-        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS),
-        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [Query.limit(500), Query.orderDesc('$createdAt')]),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, [Query.limit(500)]),
       ]);
 
       // Transform Appwrite documents to match expected format

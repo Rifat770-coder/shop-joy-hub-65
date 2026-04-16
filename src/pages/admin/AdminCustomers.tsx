@@ -183,7 +183,7 @@ export default function AdminCustomers() {
       }
 
       const [profilesResponse, ordersResponse] = await Promise.all([
-        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, []),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, [Query.limit(500)]),
         databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [Query.orderDesc('$createdAt'), Query.limit(500)]),
       ]);
 
