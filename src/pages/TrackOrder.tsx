@@ -76,10 +76,30 @@ export default function TrackOrder() {
     setLoading(true);
     setOrder(null);
     try {
+      // Try direct lookup first (full UUID)
       const data = await databases.getDocument(DATABASE_ID, COLLECTIONS.ORDERS, trimmed) as unknown as Record<string, unknown>;
       setOrder(normalizeOrder(data));
     } catch {
-      setError('অর্ডার পাওয়া যায়নি। সঠিক Order ID দিন।');
+      // If not found, try searching by prefix (short ID)
+      try {
+        const { Query } = await import('appwrite');
+        const res = await databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [
+          Query.limit(25),
+          Query.orderDesc('$createdAt'),
+        ]);
+        // Match by $id starting with the trimmed input (case-insensitive)
+        const match = res.documents.find((d) =>
+          d.$id.toLowerCase().startsWith(trimmed.toLowerCase()) ||
+          d.$id.toLowerCase().replace(/-/g, '').startsWith(trimmed.toLowerCase().replace(/-/g, ''))
+        );
+        if (match) {
+          setOrder(normalizeOrder(match as unknown as Record<string, unknown>));
+        } else {
+          setError('অর্ডার পাওয়া যায়নি। সঠিক Order ID দিন।');
+        }
+      } catch {
+        setError('অর্ডার পাওয়া যায়নি। সঠিক Order ID দিন।');
+      }
     } finally {
       setLoading(false);
     }
@@ -106,7 +126,7 @@ export default function TrackOrder() {
             <div className="flex gap-3">
               <input
                 className="flex-1 border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary transition-colors font-mono"
-                placeholder="যেমন: 69dfe3af-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                placeholder="Order ID বা প্রথম ৮ অক্ষর লিখুন (যেমন: 69E08C81)"
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleTrack()}
@@ -118,7 +138,7 @@ export default function TrackOrder() {
             </div>
             {error && <p className="text-sm text-destructive mt-2">{error}</p>}
             <p className="text-xs text-muted-foreground mt-3">
-              💡 অর্ডার করার পর confirmation page-এ Order ID পাবেন। অথবা confirmation SMS/email চেক করুন।
+              💡 অর্ডার করার পর confirmation page-এ Order ID পাবেন। প্রথম ৮ অক্ষর দিলেও কাজ করবে।
             </p>
           </div>
 
