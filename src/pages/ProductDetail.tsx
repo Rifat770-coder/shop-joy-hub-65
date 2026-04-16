@@ -28,6 +28,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
 import { useCurrency } from '@/hooks/useCurrency';
 import { normalizeImageUrl } from '@/lib/image-utils';
+import { GuestCheckoutModal } from '@/components/checkout/GuestCheckoutModal';
 
 // Build gallery from product's actual images only (pipe-separated)
 const getGalleryImages = (image: string | null | undefined): string[] => {
@@ -47,6 +48,7 @@ const ProductDetail = () => {
 
   const { data: product, isLoading } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
+  const [modalOpen, setModalOpen] = useState(false);
   
   const {
     reviews,
@@ -299,7 +301,7 @@ const ProductDetail = () => {
                   className="flex-1 gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4"
                   onClick={() => {
                     addToCart(cartProduct as any, quantity);
-                    navigate('/checkout');
+                    setModalOpen(true);
                   }}
                   disabled={product.stock === 0}
                 >
@@ -432,6 +434,12 @@ const ProductDetail = () => {
         </div>
       </main>
       <Footer />
+
+      <GuestCheckoutModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        paymentType="cod"
+      />
     </div>
   );
 };

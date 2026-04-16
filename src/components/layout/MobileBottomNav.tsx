@@ -1,13 +1,21 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ClipboardList, User, Heart } from 'lucide-react';
+import { ClipboardList, User, Heart, Search } from 'lucide-react';
+
+// Pages where bottom nav should not appear
+const HIDDEN_ON = ['/auth', '/checkout', '/payment'];
 
 export function MobileBottomNav() {
   const location = useLocation();
 
+  if (HIDDEN_ON.some((path) => location.pathname.startsWith(path))) {
+    return null;
+  }
+
   const navItems = [
-    { href: '/orders', label: 'Order History', icon: ClipboardList },
-    { href: '/profile', label: 'My Profile', icon: User },
-    { href: '/wishlist', label: 'My Wishlist', icon: Heart },
+    { href: '/orders', label: 'Orders', icon: ClipboardList },
+    { href: '/track-order', label: 'Track', icon: Search },
+    { href: '/profile', label: 'Profile', icon: User },
+    { href: '/wishlist', label: 'Wishlist', icon: Heart },
   ];
 
   const isActive = (path: string) => location.pathname === path;

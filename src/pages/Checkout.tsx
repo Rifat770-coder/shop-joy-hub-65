@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Truck, CheckCircle, ArrowLeft, Lock, Smartphone, Loader2 } from 'lucide-react';
+import { useNavigate as _useNavigate, Link } from 'react-router-dom';
+import { Truck, CheckCircle, ArrowLeft, Smartphone, Loader2 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
@@ -58,7 +58,6 @@ const getErrorMessage = (error: unknown, fallback: string): string => {
 };
 
 const Checkout = () => {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
   const { storeSettings } = useSettings();
@@ -240,16 +239,6 @@ const Checkout = () => {
   };
 
   const handlePlaceOrder = async () => {
-    if (!user) {
-      toast({
-        title: 'Please sign in',
-        description: 'You need to be signed in to place an order.',
-        variant: 'destructive',
-      });
-      navigate('/auth');
-      return;
-    }
-
     if ((paymentMethod === 'bkash' || paymentMethod === 'nagad') && !transactionId.trim()) {
       toast({
         title: 'Transaction ID required',
@@ -334,7 +323,7 @@ const Checkout = () => {
           COLLECTIONS.ORDERS,
           fallbackOrderId,
           {
-            userId: user.$id,
+            userId: user?.$id || 'guest',
             items: JSON.stringify(fallbackOrderItems),
             total,
             status: 'pending',
@@ -379,7 +368,7 @@ const Checkout = () => {
         }));
 
         const emailResponse = await functions.createExecution(
-          'send-order-confirmation',
+          '6967b597000c9b7b1cc6',
           JSON.stringify({
             orderId: data.orderId,
             customerEmail: shippingForm.email,
@@ -455,27 +444,6 @@ const Checkout = () => {
             <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
             <Link to="/products">
               <Button>Browse Products</Button>
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!user && step !== 'confirmation') {
-    return (
-      <div className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Lock className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-            <h1 className="text-2xl font-bold mb-2">Sign in to checkout</h1>
-            <p className="text-muted-foreground mb-6">
-              You need to be signed in to complete your purchase.
-            </p>
-            <Link to="/auth">
-              <Button>Sign In</Button>
             </Link>
           </div>
         </main>

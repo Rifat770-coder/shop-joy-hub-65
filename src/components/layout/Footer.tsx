@@ -106,6 +106,7 @@ export function Footer() {
                 { label: "Categories", to: "/categories" },
                 { label: "Deals", to: "/deals" },
                 { label: "Wishlist", to: "/wishlist" },
+                { label: "Track Order", to: "/track-order" },
               ].map(({ label, to }) => (
                 <li key={label}>
                   <Link to={to} className="text-slate-400 hover:text-orange-400 text-sm transition-colors flex items-center gap-1.5 group">

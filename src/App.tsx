@@ -23,6 +23,7 @@ import Products from "./pages/Products";
 import Deals from "./pages/Deals";
 import OrderHistory from "./pages/OrderHistory";
 import OrderTracking from "./pages/OrderTracking";
+import TrackOrder from "./pages/TrackOrder";
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Categories = lazy(() => import("./pages/Categories"));
 const Cart = lazy(() => import("./pages/Cart"));
@@ -85,6 +86,7 @@ const App = () => (
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/orders" element={<OrderHistory />} />
                     <Route path="/orders/:id" element={<OrderTracking />} />
+                    <Route path="/track-order" element={<TrackOrder />} />
                     <Route path="/wishlist" element={<Wishlist />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/payment/callback" element={<PaymentCallback />} />

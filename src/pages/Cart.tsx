@@ -11,6 +11,7 @@ import { AppliedCoupon } from '@/hooks/useCoupons';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { getPrimaryImage } from '@/lib/image-utils';
 import { useCurrency } from '@/hooks/useCurrency';
+import { GuestCheckoutModal } from '@/components/checkout/GuestCheckoutModal';
 
 interface TaxSettings {
   enableTax: boolean;
@@ -39,6 +40,7 @@ const Cart = () => {
   const { items, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const { formatCurrency } = useCurrency();
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
+  const [checkoutModal, setCheckoutModal] = useState<{ open: boolean; type: 'cod' | 'online' }>({ open: false, type: 'cod' });
   const [taxSettings, setTaxSettings] = useState<TaxSettings>({
     enableTax: false,
     taxRate: 0,
@@ -261,11 +263,14 @@ const Cart = () => {
                   </span>
                 </div>
 
-                <Link to="/checkout">
-                  <Button variant="hero" className="w-full" size="lg">
-                    Proceed to Checkout
-                  </Button>
-                </Link>
+                <Button
+                  variant="hero"
+                  className="w-full"
+                  size="lg"
+                  onClick={() => setCheckoutModal({ open: true, type: 'cod' })}
+                >
+                  Proceed to Checkout
+                </Button>
 
                 <Link to="/products">
                   <Button variant="ghost" className="w-full mt-2">
@@ -278,6 +283,12 @@ const Cart = () => {
         </div>
       </main>
       <Footer />
+
+      <GuestCheckoutModal
+        open={checkoutModal.open}
+        onClose={() => setCheckoutModal({ open: false, type: 'cod' })}
+        paymentType={checkoutModal.type}
+      />
     </div>
   );
 };

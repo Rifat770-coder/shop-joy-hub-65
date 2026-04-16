@@ -47,11 +47,19 @@ export function PaymentApprovalManager() {
   const fetchPendingOrders = async () => {
     setLoading(true);
     try {
-      const response = await databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [
-        Query.equal('paymentStatus', 'pending'),
+      // Fetch both 'pending' and 'authorized' — guest checkout sets 'authorized'
+      const [pendingRes, authorizedRes] = await Promise.all([
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [
+          Query.equal('paymentStatus', 'pending'),
+        ]),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [
+          Query.equal('paymentStatus', 'authorized'),
+        ]),
       ]);
 
-      const mobilePending = response.documents
+      const allDocs = [...pendingRes.documents, ...authorizedRes.documents];
+
+      const mobilePending = allDocs
         .map((d) => normalizeOrder(d as unknown as Record<string, unknown>))
         .filter((o) => (o.paymentMethod === 'bkash' || o.paymentMethod === 'nagad') && o.transactionId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
