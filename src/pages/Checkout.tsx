@@ -335,6 +335,15 @@ const Checkout = () => {
           }
         );
 
+        // Deduct stock in fallback mode
+        for (const item of items) {
+          try {
+            const productDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, item.product.id) as unknown as Record<string, unknown>;
+            const newStock = Math.max(0, Number(productDoc.stock || 0) - item.quantity);
+            await databases.updateDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, item.product.id, { stock: newStock });
+          } catch { /* non-fatal */ }
+        }
+
         data = {
           success: true,
           orderId: fallbackOrderId,

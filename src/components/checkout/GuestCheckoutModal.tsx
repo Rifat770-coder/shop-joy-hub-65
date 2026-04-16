@@ -88,6 +88,9 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
     if (!name.trim()) { toast({ title: 'নাম দিন', variant: 'destructive' }); return false; }
     if (!phone.trim()) { toast({ title: 'ফোন নাম্বার দিন', variant: 'destructive' }); return false; }
     if (!address.trim()) { toast({ title: 'এড্রেস দিন', variant: 'destructive' }); return false; }
+    if (!email.trim()) { toast({ title: 'ইমেইল দিন', description: 'অর্ডার কনফার্মেশন পেতে ইমেইল দিতে হবে', variant: 'destructive' }); return false; }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) { toast({ title: 'সঠিক ইমেইল দিন', variant: 'destructive' }); return false; }
     return true;
   };
 
@@ -125,7 +128,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
   const placeOrder = async (paymentMethod: string, txnId?: string) => {
     setIsSubmitting(true);
     try {
-      const shippingAddress = `${name}\nPhone: ${phone}\n${address}${note ? '\nNote: ' + note : ''}`;
+      const shippingAddress = `${name}\nPhone: ${phone}\n${address}${email.trim() ? '\nEmail: ' + email.trim() : ''}${note ? '\nNote: ' + note : ''}`;
       const orderItems = items.map((i) => ({ productId: i.product.id, quantity: i.quantity }));
       const fallbackItems = items.map((i) => ({
         product: { id: i.product.id, name: i.product.name, price: i.product.price, image: i.product.image },
@@ -173,6 +176,18 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
           shippingAddress,
           shippingMethod: selectedOpt ? JSON.stringify(selectedOpt) : undefined,
         });
+
+        // Deduct stock for each item (fallback mode)
+        for (const item of items) {
+          try {
+            const productDoc = await databases.getDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, item.product.id) as unknown as Record<string, unknown>;
+            const currentStock = Number(productDoc.stock || 0);
+            const newStock = Math.max(0, currentStock - item.quantity);
+            await databases.updateDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, item.product.id, { stock: newStock });
+          } catch {
+            // Non-fatal
+          }
+        }
       }
 
       clearCart();
@@ -243,12 +258,12 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
                 placeholder="এড্রেস (থানা+জেলা) লিখুন" value={address} onChange={(e) => setAddress(e.target.value)} />
             </div>
 
-            {/* Email (optional) */}
+ {/* Email (required) */}
             <div className="flex items-center gap-3 border border-green-300 rounded-full px-4 py-2.5">
               <span className="text-green-500 shrink-0 text-sm">✉</span>
               <input className="flex-1 outline-none text-sm placeholder:text-gray-400"
-                placeholder="ইমেইল — কনফার্মেশন পেতে"
-                type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                placeholder="ইমেইল (আবশ্যক)"
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
             </div>
 
             {/* Cart Items */}
@@ -388,7 +403,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
             {/* Merchant number */}
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 text-center">
               <p className="text-xs text-gray-500 mb-1">{onlineMethod === 'bkash' ? 'bKash' : 'Nagad'} নম্বর</p>
-              <p className="text-2xl font-black tracking-widest text-gray-800">{PAYMENT_NUMBERS[onlineMethod]}</p>
+              <p className="text-2xl font-black tracking-widest text-gray-800">01988935650</p>
               <button onClick={handleCopyNumber}
                 className="mt-2 flex items-center gap-1.5 mx-auto text-xs text-gray-500 hover:text-gray-700 border border-gray-200 rounded-full px-3 py-1">
                 {copied ? <CheckCircle className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}

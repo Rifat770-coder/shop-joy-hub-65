@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Mail, Phone, MapPin, Package, ChevronDown, ChevronUp, Search } from 'lucide-react';
+import { Users, Mail, Phone, MapPin, Package, ChevronDown, ChevronUp, Search, Copy } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { AppwriteSetupGuide } from '@/components/AppwriteSetupGuide';
 import { PermissionError } from '@/components/PermissionError';
@@ -178,63 +178,104 @@ export default function AdminCustomers() {
     setLoading(true);
     setLoadError(null);
     try {
-      // Check if Appwrite is properly configured
       if (!DATABASE_ID || DATABASE_ID === 'your-appwrite-database-id') {
-        throw new Error('Appwrite database is not configured. Please set VITE_APPWRITE_DATABASE_ID in your .env file.');
+        throw new Error('Appwrite database is not configured.');
       }
 
       const [profilesResponse, ordersResponse] = await Promise.all([
-        databases.listDocuments(
-          DATABASE_ID,
-          COLLECTIONS.PROFILES,
-          []
-        ),
-        databases.listDocuments(
-          DATABASE_ID,
-          COLLECTIONS.ORDERS,
-          []
-        ),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.PROFILES, []),
+        databases.listDocuments(DATABASE_ID, COLLECTIONS.ORDERS, [Query.orderDesc('$createdAt'), Query.limit(500)]),
       ]);
 
       const normalizedOrders = ordersResponse.documents.map((orderDoc) => {
-        const normalized = normalizeOrder(orderDoc as unknown as Record<string, unknown>);
-        const orderUserId =
-          ((orderDoc as unknown as Record<string, unknown>).userId as string) ||
-          ((orderDoc as unknown as Record<string, unknown>).user_id as string) ||
-          '';
-
+        const doc = orderDoc as unknown as Record<string, unknown>;
+        const normalized = normalizeOrder(doc);
         return {
           ...normalized,
-          user_id: orderUserId,
-        } as Order & { user_id: string };
+          user_id: (doc.userId as string) || (doc.user_id as string) || '',
+          shippingAddress: (doc.shippingAddress as string) || '',
+          paymentMethod: (doc.paymentMethod as string) || '',
+          email: (doc.email as string) || '',
+        };
       }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-      const customersWithOrders = profilesResponse.documents.map((profileDoc) =>
+      // Registered customers from profiles
+      const registeredCustomers = profilesResponse.documents.map((profileDoc) =>
         normalizeCustomer(
           profileDoc as unknown as Record<string, unknown>,
           normalizedOrders as unknown as Order[]
         )
-      ).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      );
 
-      setCustomers(customersWithOrders);
+      // Guest customers — orders where userId === 'guest' or no matching profile
+      const registeredUserIds = new Set(registeredCustomers.map((c) => c.user_id));
+      const guestOrders = normalizedOrders.filter(
+        (o) => o.user_id === 'guest' || (!registeredUserIds.has(o.user_id) && o.user_id !== '')
+      );
+
+      // Group guest orders by phone number (parsed from shippingAddress)
+      const guestMap = new Map<string, typeof guestOrders>();
+      for (const order of guestOrders) {
+        const addr = order.shippingAddress || '';
+        // Parse phone from "Name\nPhone: 01XXXXXXXXX\nAddress"
+        const phoneMatch = addr.match(/Phone:\s*([^\n]+)/i);
+        const phone = phoneMatch ? phoneMatch[1].trim() : addr.split('\n')[0] || order.id;
+        const key = phone;
+        if (!guestMap.has(key)) guestMap.set(key, []);
+        guestMap.get(key)!.push(order);
+      }
+
+      const guestCustomers: Customer[] = Array.from(guestMap.entries()).map(([phone, orders]) => {
+        const firstOrder = orders[0];
+        const addr = firstOrder.shippingAddress || '';
+        const lines = addr.split('\n').map((l: string) => l.trim()).filter(Boolean);
+        const name = lines[0] || 'Guest';
+        // Filter out Phone, Email, Note lines from address
+        const addressLine = lines
+          .filter((l: string) =>
+            !l.startsWith('Phone:') &&
+            !l.startsWith('Email:') &&
+            !l.startsWith('Note:')
+          )
+          .slice(1) // skip name line
+          .join(', ');
+        
+        // Extract email if provided in any order's shippingAddress or email field
+        const emailOrder = orders.find((o) => {
+          const addr = o.shippingAddress || '';
+          return o.email || addr.match(/Email:\s*([^\n]+)/i);
+        });
+        const emailFromAddr = emailOrder?.shippingAddress?.match(/Email:\s*([^\n]+)/i)?.[1]?.trim();
+        const guestEmail = emailOrder?.email || emailFromAddr || undefined;
+
+        return {
+          id: `guest-${phone}`,
+          user_id: `guest-${phone}`,
+          full_name: name,
+          username: null,
+          phone: phone.replace(/^Phone:\s*/i, ''),
+          shipping_address: addressLine || lines.slice(2).join(', '),
+          created_at: firstOrder.created_at,
+          email: guestEmail,
+          orders: orders as unknown as Order[],
+        };
+      });
+
+      const allCustomers = [...registeredCustomers, ...guestCustomers]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setCustomers(allCustomers);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const isAuthError = errorMessage.includes('unauthorized') || errorMessage.includes('401');
-      
-      console.error('Error fetching customers:', errorMessage, error);
+      console.error('Error fetching customers:', errorMessage);
       setCustomers([]);
-      
       if (isAuthError) {
-        setLoadError('You do not have permission to view customers. Please ensure you are logged in with an admin account.');
+        setLoadError('You do not have permission to view customers.');
       } else {
-        setLoadError(errorMessage || 'Failed to load customers. Please try again.');
+        setLoadError(errorMessage || 'Failed to load customers.');
       }
-      
-      toast({
-        title: 'Error',
-        description: isAuthError ? 'Access denied' : (errorMessage || 'Failed to fetch customers'),
-        variant: 'destructive',
-      });
+      toast({ title: 'Error', description: errorMessage || 'Failed to fetch customers', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
@@ -246,7 +287,8 @@ export default function AdminCustomers() {
       customer.full_name?.toLowerCase().includes(query) ||
       customer.username?.toLowerCase().includes(query) ||
       customer.phone?.toLowerCase().includes(query) ||
-      customer.user_id.toLowerCase().includes(query)
+      customer.user_id.toLowerCase().includes(query) ||
+      customer.shipping_address?.toLowerCase().includes(query)
     );
   });
 
@@ -412,11 +454,14 @@ export default function AdminCustomers() {
                             </TableCell>
                             <TableCell>
                               <div>
-                                <p className="font-medium">
+                                <p className="font-medium flex items-center gap-2">
                                   {customer.full_name || customer.username || 'Anonymous'}
+                                  {customer.user_id.startsWith('guest-') && (
+                                    <span className="text-[10px] bg-orange-100 text-orange-600 border border-orange-200 rounded-full px-1.5 py-0.5 font-semibold">Guest</span>
+                                  )}
                                 </p>
                                 <p className="text-xs text-muted-foreground font-mono">
-                                  {customer.user_id.slice(0, 8)}...
+                                  {customer.user_id.startsWith('guest-') ? 'Guest Order' : customer.user_id.slice(0, 8) + '...'}
                                 </p>
                               </div>
                             </TableCell>
@@ -428,6 +473,20 @@ export default function AdminCustomers() {
                                     {customer.phone}
                                   </div>
                                 )}
+                                {customer.email && (
+                                  <div
+                                    className="flex items-center gap-1 text-sm text-muted-foreground cursor-pointer hover:text-primary group"
+                                    title="Click to copy email"
+                                    onClick={async () => {
+                                      await navigator.clipboard.writeText(customer.email!);
+                                      toast({ title: 'Copied', description: customer.email });
+                                    }}
+                                  >
+                                    <Mail className="h-3 w-3 shrink-0" />
+                                    <span className="truncate max-w-40 group-hover:underline">{customer.email}</span>
+                                    <Copy className="h-3 w-3 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                  </div>
+                                )}
                                 {customer.shipping_address && (
                                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                                     <MapPin className="h-3 w-3" />
@@ -436,7 +495,7 @@ export default function AdminCustomers() {
                                     </span>
                                   </div>
                                 )}
-                                {!customer.phone && !customer.shipping_address && (
+                                {!customer.phone && !customer.shipping_address && !customer.email && (
                                   <span className="text-sm text-muted-foreground">—</span>
                                 )}
                               </div>
