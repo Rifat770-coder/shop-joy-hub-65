@@ -374,7 +374,7 @@ export default function AdminInventory() {
               <CardTitle className="text-sm font-medium text-muted-foreground">Inventory Value</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${stats.totalValue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{stats.totalValue.toLocaleString()} BDT</div>
             </CardContent>
           </Card>
         </div>
