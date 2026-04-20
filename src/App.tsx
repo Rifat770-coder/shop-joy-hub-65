@@ -17,14 +17,15 @@ import { UserBehaviorTracker } from "@/components/analytics/UserBehaviorTracker"
 // Validate environment on app startup
 ensureValidEnvironment();
 
-// Eagerly load the Index and Products pages — most visited routes
+// Only Index is eagerly loaded — everything else is lazy
 import Index from "./pages/Index";
-import Products from "./pages/Products";
-import Deals from "./pages/Deals";
-import OrderHistory from "./pages/OrderHistory";
-import OrderTracking from "./pages/OrderTracking";
-import TrackOrder from "./pages/TrackOrder";
-import Cart from "./pages/Cart";
+
+const Products = lazy(() => import("./pages/Products"));
+const Deals = lazy(() => import("./pages/Deals"));
+const OrderHistory = lazy(() => import("./pages/OrderHistory"));
+const OrderTracking = lazy(() => import("./pages/OrderTracking"));
+const TrackOrder = lazy(() => import("./pages/TrackOrder"));
+const Cart = lazy(() => import("./pages/Cart"));
 const ProductDetail = lazy(() => import("./pages/ProductDetail"));
 const Categories = lazy(() => import("./pages/Categories"));
 const Auth = lazy(() => import("./pages/Auth"));

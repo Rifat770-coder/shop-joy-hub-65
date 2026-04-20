@@ -43,6 +43,12 @@ import {
   Product 
 } from '@/hooks/useProducts';
 
+// Predefined common categories — defined outside component to avoid recreation
+const DEFAULT_CATEGORIES = [
+  'Electronics', 'Mobile', 'Headphones', 'Smartwatch', 'Laptop',
+  'Accessories', 'Gaming', 'Camera', 'TV & Audio', 'Home Appliance',
+];
+
 export default function AdminProducts() {
   const { data: products = [], isLoading } = useProducts();
   const addProduct = useAddProduct();
@@ -70,8 +76,14 @@ export default function AdminProducts() {
     p.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  const [editCategoryInput, setEditCategoryInput] = useState('');
+
   const categoryOptions = useMemo(() => {
-    const set = new Set(products.map((p) => p.category));
+    const set = new Set([
+      ...DEFAULT_CATEGORIES,
+      ...products.map((p) => p.category),
+    ]);
     if (editingProduct?.category) set.add(editingProduct.category);
     if (newProduct.category) set.add(newProduct.category);
     return Array.from(set).sort();
@@ -161,11 +173,11 @@ export default function AdminProducts() {
                 Add Product
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
+            <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle>Add New Product</DialogTitle>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 overflow-y-auto flex-1 pr-1">
                 <div className="grid gap-2">
                   <Label htmlFor="name">Product Name *</Label>
                   <Input
@@ -247,6 +259,36 @@ export default function AdminProducts() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="অথবা নতুন category লিখুন..."
+                      value={newCategoryInput}
+                      onChange={(e) => setNewCategoryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && newCategoryInput.trim()) {
+                          setNewProduct({ ...newProduct, category: newCategoryInput.trim() });
+                          setNewCategoryInput('');
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => {
+                        if (newCategoryInput.trim()) {
+                          setNewProduct({ ...newProduct, category: newCategoryInput.trim() });
+                          setNewCategoryInput('');
+                        }
+                      }}
+                    >
+                      Set
+                    </Button>
+                  </div>
+                  {newProduct.category && (
+                    <p className="text-xs text-primary">Selected: <strong>{newProduct.category}</strong></p>
+                  )}
                 </div>
                 <div className="grid gap-2">
                   <Label>Image URLs</Label>
@@ -300,12 +342,12 @@ export default function AdminProducts() {
 
         {/* Edit Product Dialog */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
             <DialogHeader>
               <DialogTitle>Edit Product</DialogTitle>
             </DialogHeader>
             {editingProduct && (
-              <div className="grid gap-4 py-4">
+              <div className="grid gap-4 py-4 overflow-y-auto flex-1 pr-1">
                 <div className="grid gap-2">
                   <Label htmlFor="edit-name">Product Name *</Label>
                   <Input
@@ -387,6 +429,33 @@ export default function AdminProducts() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="অথবা নতুন category লিখুন..."
+                      value={editCategoryInput}
+                      onChange={(e) => setEditCategoryInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && editCategoryInput.trim()) {
+                          setEditingProduct({ ...editingProduct, category: editCategoryInput.trim() });
+                          setEditCategoryInput('');
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0"
+                      onClick={() => {
+                        if (editCategoryInput.trim()) {
+                          setEditingProduct({ ...editingProduct, category: editCategoryInput.trim() });
+                          setEditCategoryInput('');
+                        }
+                      }}
+                    >
+                      Set
+                    </Button>
+                  </div>
                 </div>
                 <div className="grid gap-2">
                   <Label>Image URLs</Label>

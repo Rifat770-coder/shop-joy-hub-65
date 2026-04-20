@@ -20,31 +20,7 @@ export const UserBehaviorTracker: React.FC<UserBehaviorTrackerProps> = ({
   children, 
   enabled = true 
 }) => {
-  const location = useLocation();
-  const { trackProductView, trackAddToCart, trackPurchase } = useUserBehaviorTracking();
-
-  // Auto-track page views only — click/scroll tracking disabled (too many Appwrite calls)
-  useAutoPageTracking(location.pathname, enabled);
-  // useClickTracking(location.pathname, enabled);   // disabled: fires on every click
-  // useScrollTracking(location.pathname, enabled);  // disabled: fires constantly
-
-  // Expose tracking functions globally for manual tracking
-  useEffect(() => {
-    if (enabled) {
-      // Make tracking functions available globally
-      (window as any).analytics = {
-        trackProductView,
-        trackAddToCart,
-        trackPurchase,
-      };
-    }
-
-    return () => {
-      // Cleanup
-      delete (window as any).analytics;
-    };
-  }, [enabled, trackProductView, trackAddToCart, trackPurchase]);
-
+  // Analytics tracking disabled to reduce memory/network usage
   return <>{children}</>;
 };
 
