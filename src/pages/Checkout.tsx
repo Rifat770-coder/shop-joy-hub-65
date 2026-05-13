@@ -377,7 +377,7 @@ const Checkout = () => {
         }));
 
         const emailResponse = await functions.createExecution(
-          '6967b597000c9b7b1cc6',
+          'send-order-confirmation',
           JSON.stringify({
             orderId: data.orderId,
             customerEmail: shippingForm.email,

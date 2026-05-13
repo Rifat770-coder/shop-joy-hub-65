@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { Product as AppwriteProduct } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
-import { Query } from 'appwrite';
+import { Query, ID } from 'appwrite';
 
 export type Product = AppwriteProduct & {
   id: string;
@@ -35,10 +35,10 @@ export const useProducts = () => {
         COLLECTIONS.PRODUCTS,
         [Query.orderDesc('$createdAt'), Query.limit(100)]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
+      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
     },
-    staleTime: 1000 * 60 * 5, // 5 minutes — same session-এ re-fetch হবে না
-    gcTime: 1000 * 60 * 10,   // 10 minutes cache memory-তে থাকবে
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
   });
 };
 
@@ -54,7 +54,7 @@ export const useFeaturedProducts = () => {
           Query.orderDesc('$createdAt')
         ]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
+      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
     },
   });
 };
@@ -71,7 +71,7 @@ export const useProductsByCategory = (category: string) => {
           Query.orderDesc('$createdAt')
         ]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as AppwriteProduct));
+      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
     },
     enabled: !!category,
   });
@@ -86,7 +86,7 @@ export const useProduct = (id: string) => {
         COLLECTIONS.PRODUCTS,
         id
       );
-      return normalizeProduct(response as AppwriteProduct);
+      return normalizeProduct(response as unknown as AppwriteProduct);
     },
     enabled: !!id,
   });
@@ -97,7 +97,7 @@ export const useAddProduct = () => {
 
   return useMutation({
     mutationFn: async (product: ProductInsert) => {
-      const documentId = crypto.randomUUID();
+      const documentId = ID.unique();
       const response = await databases.createDocument(
         DATABASE_ID,
         COLLECTIONS.PRODUCTS,
@@ -112,7 +112,7 @@ export const useAddProduct = () => {
           originalPrice: product.originalPrice || null,
         }
       );
-      return normalizeProduct(response as AppwriteProduct);
+      return normalizeProduct(response as unknown as AppwriteProduct);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -147,7 +147,7 @@ export const useUpdateProduct = () => {
         targetId,
         updates
       );
-      return normalizeProduct(response as AppwriteProduct);
+      return normalizeProduct(response as unknown as AppwriteProduct);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });

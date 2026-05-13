@@ -197,7 +197,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
       // Send confirmation email (non-blocking)
       if (orderId && email.trim()) {
         functions.createExecution(
-          '6967b597000c9b7b1cc6', // send-order-confirmation function ID
+          'send-order-confirmation', // send-order-confirmation function ID
           JSON.stringify({
             orderId,
             customerEmail: email.trim(),
