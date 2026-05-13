@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, User, Menu, Heart, ChevronDown, Lock, LayoutDashboard } from 'lucide-react';
+import { ShoppingCart, User, Menu, Heart, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
-import { useUserPermissions } from '@/hooks/useUserPermissions';
 import { Badge } from '@/components/ui/badge';
 import { SearchAutocomplete } from '@/components/search/SearchAutocomplete';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -14,7 +13,6 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { totalItems } = useCart();
   const { user } = useAuth();
-  const { isAdmin, loading: permissionsLoading } = useUserPermissions();
   const location = useLocation();
   const { storeSettings } = useSettings();
 
@@ -97,22 +95,6 @@ export function Header() {
             </Link>
           )}
 
-          {!permissionsLoading && (
-            isAdmin ? (
-              <Link to="/admin" className="hidden sm:block">
-                <Button size="sm" variant="secondary" className="h-8 px-3 gap-1.5 text-xs font-semibold bg-foreground text-background hover:bg-foreground/90">
-                  <LayoutDashboard className="h-3.5 w-3.5" />
-                  Admin
-                </Button>
-              </Link>
-            ) : (
-              <Button size="sm" variant="ghost" className="hidden sm:flex h-8 px-3 gap-1.5 text-xs text-muted-foreground/50 cursor-not-allowed" disabled>
-                <Lock className="h-3.5 w-3.5" />
-                Admin
-              </Button>
-            )
-          )}
-
           {/* Mobile Menu */}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
@@ -149,9 +131,6 @@ export function Header() {
                       </>
                     ) : (
                       <Link to="/auth" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-lg text-sm font-semibold text-primary hover:bg-primary/10"><User className="h-4 w-4 mr-2" />Sign In</Link>
-                    )}
-                    {!permissionsLoading && isAdmin && (
-                      <Link to="/admin" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center px-3 py-2.5 rounded-lg text-sm font-semibold bg-foreground text-background hover:bg-foreground/90"><LayoutDashboard className="h-4 w-4 mr-2" />Admin Panel</Link>
                     )}
                   </div>
                 </nav>
