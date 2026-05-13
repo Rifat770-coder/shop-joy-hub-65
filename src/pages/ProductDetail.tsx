@@ -38,7 +38,8 @@ const getGalleryImages = (image: string | null | undefined): string[] => {
 };
 
 const ProductDetail = () => {
-  const { id } = useParams();
+  const { id: rawSlug } = useParams();
+  const id = rawSlug || '';
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const navigate = useNavigate();
@@ -60,6 +61,14 @@ const ProductDetail = () => {
     updateReview,
     deleteReview,
   } = useReviews(id || '');
+
+  // Redirect UUID URLs to slug URLs once product is loaded
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!isLoading && product && uuidPattern.test(id)) {
+    import('@/lib/slug').then(({ slugify }) => {
+      navigate(`/products/${slugify(product.name)}`, { replace: true });
+    });
+  }
 
   if (isLoading) {
     return (

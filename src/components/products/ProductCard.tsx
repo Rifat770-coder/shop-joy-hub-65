@@ -6,6 +6,7 @@ import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useCurrency } from '@/hooks/useCurrency';
 import { getPrimaryImage } from '@/lib/image-utils';
+import { productSlug } from '@/lib/slug';
 import { useState } from 'react';
 import { GuestCheckoutModal } from '@/components/checkout/GuestCheckoutModal';
 
@@ -35,7 +36,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in flex flex-col">
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
-        <Link to={`/products/${product.id}`}>
+        <Link to={`/products/${productSlug(product.name, product.id)}`}>
           <img
             src={getPrimaryImage(product.image)}
             alt={product.name}
@@ -85,7 +86,7 @@ export function ProductCard({ product }: ProductCardProps) {
       <div className="p-3 flex flex-col gap-1.5 flex-1">
         <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">{product.category}</p>
 
-        <Link to={`/products/${product.id}`}>
+        <Link to={`/products/${productSlug(product.name, product.id)}`}>
           <h3 className="text-sm font-semibold line-clamp-2 text-foreground hover:text-primary transition-colors leading-snug">
             {product.name}
           </h3>

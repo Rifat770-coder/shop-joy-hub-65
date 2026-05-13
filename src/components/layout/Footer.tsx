@@ -83,9 +83,10 @@ export function Footer() {
               Your one-stop destination for quality gadgets and electronics. Fast delivery across Bangladesh.
             </p>
             <div className="flex gap-2">
+
               {[
-                { icon: Facebook, href: "https://www.facebook.com/profile.php?id=61572043347708", label: "Facebook", newTab: true },
-                { icon: Instagram, href: "#", label: "Instagram", newTab: false },
+                { icon: Facebook, href: "https://www.facebook.com/Official.RealGadgetBD/", label: "Facebook", newTab: true },
+                { icon: Instagram, href: "https://www.instagram.com/realgadgetbd?igsh=MXJ4MDE3aWpkM2hoeQ%3D%3D", label: "Instagram", newTab: true },
                 { icon: Youtube, href: "#", label: "Youtube", newTab: false },
               ].map(({ icon: Icon, href, label, newTab }) => (
                 <a key={label} href={href} aria-label={label}

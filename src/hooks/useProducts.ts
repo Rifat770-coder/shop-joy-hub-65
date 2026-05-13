@@ -77,18 +77,33 @@ export const useProductsByCategory = (category: string) => {
   });
 };
 
-export const useProduct = (id: string) => {
+export const useProduct = (slugOrId: string) => {
   return useQuery({
-    queryKey: ['products', id],
+    queryKey: ['products', slugOrId],
     queryFn: async () => {
-      const response = await databases.getDocument(
+      // If it looks like a UUID, fetch directly
+      const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (uuidPattern.test(slugOrId)) {
+        const response = await databases.getDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, slugOrId);
+        return normalizeProduct(response as unknown as AppwriteProduct);
+      }
+
+      // Slug-based: fetch all products and find by slug match
+      const { slugify } = await import('@/lib/slug');
+      const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.PRODUCTS,
-        id
+        [Query.limit(500)]
       );
-      return normalizeProduct(response as unknown as AppwriteProduct);
+
+      const match = response.documents.find(
+        (doc) => slugify((doc as any).name || '') === slugOrId
+      );
+
+      if (!match) throw new Error('Product not found');
+      return normalizeProduct(match as unknown as AppwriteProduct);
     },
-    enabled: !!id,
+    enabled: !!slugOrId,
   });
 };
 
