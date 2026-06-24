@@ -365,42 +365,49 @@ const Checkout = () => {
 
       // Try to send order confirmation email (non-blocking, silent failure)
       let emailSentSuccessfully = true;
-      try {
-        const orderItemsForEmail = items.map((item) => ({
-          product: {
-            id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            image: item.product.image,
-          },
-          quantity: item.quantity,
-        }));
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!shippingForm.email || !emailRegex.test(shippingForm.email)) {
+        console.warn('Invalid or missing customer email — skipping confirmation email:', shippingForm.email);
+        emailSentSuccessfully = false;
+      } else {
+        try {
+          const orderItemsForEmail = items.map((item) => ({
+            product: {
+              id: item.product.id,
+              name: item.product.name,
+              price: item.product.price,
+              image: item.product.image,
+            },
+            quantity: item.quantity,
+          }));
 
-        const emailResponse = await functions.createExecution(
-          'send-order-confirmation',
-          JSON.stringify({
-            orderId: data.orderId,
-            customerEmail: shippingForm.email,
-            customerName: shippingForm.fullName,
-            items: orderItemsForEmail,
-            subtotal: data.subtotal,
-            discount: data.discount,
-            tax: data.tax,
-            taxName: taxSettings?.taxName || 'Tax',
-            shippingCost: shippingCost,
-            shippingMethodName: selectedShippingOption?.name || 'Standard',
-            total: data.total,
-            shippingAddress: shippingAddress,
-          })
-        );
+          const emailResponse = await functions.createExecution(
+            'send-order-confirmation',
+            JSON.stringify({
+              orderId: data.orderId,
+              customerEmail: shippingForm.email.trim(),
+              customerName: shippingForm.fullName,
+              items: orderItemsForEmail,
+              subtotal: data.subtotal,
+              discount: data.discount,
+              shippingCost: shippingCost,
+              total: data.total,
+              shippingAddress: shippingAddress,
+              paymentMethod,
+            })
+          );
 
-        const emailResult = JSON.parse(emailResponse.responseBody || '{}');
-        if (!emailResult.success) {
-          console.warn('Email sending failed:', emailResult.error || 'Unknown email error');
+          const emailResult = JSON.parse(emailResponse.responseBody || '{}');
+          if (!emailResult.success) {
+            console.warn('Email sending failed:', emailResult.error || 'Unknown error');
+            emailSentSuccessfully = false;
+          } else {
+            console.log('Confirmation email sent to:', shippingForm.email);
+          }
+        } catch (emailError) {
+          console.warn('Email function call failed:', emailError instanceof Error ? emailError.message : emailError);
           emailSentSuccessfully = false;
         }
-      } catch (emailError) {
-        console.warn('Email sending failed:', emailError);
       }
 
       setOrderId(data.orderId);

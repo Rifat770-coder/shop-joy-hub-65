@@ -194,13 +194,15 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
       onClose();
       toast({ title: '✅ অর্ডার সফল হয়েছে!', description: txnId ? 'পেমেন্ট যাচাই করা হবে।' : 'আমরা শীঘ্রই যোগাযোগ করবো।' });
 
-      // Send confirmation email (non-blocking)
-      if (orderId && email.trim()) {
+      // Send confirmation email
+      const trimmedEmail = email.trim();
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (orderId && trimmedEmail && emailRegex.test(trimmedEmail)) {
         functions.createExecution(
-          'send-order-confirmation', // send-order-confirmation function ID
+          'send-order-confirmation',
           JSON.stringify({
             orderId,
-            customerEmail: email.trim(),
+            customerEmail: trimmedEmail,
             customerName: name,
             items: fallbackItems,
             subtotal: totalPrice,
@@ -211,7 +213,18 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
             paymentMethod,
           }),
           false, '/', ExecutionMethod.POST
-        ).catch(() => {}); // silent fail
+        ).then((execRes) => {
+          try {
+            const result = JSON.parse(execRes.responseBody);
+            if (!result.success) console.warn('Email send failed:', result.error);
+          } catch { /* ignore parse error */ }
+        }).catch((emailErr) => {
+          console.warn('Email function call failed:', emailErr?.message || emailErr);
+        });
+      } else if (!trimmedEmail) {
+        console.log('Email not provided — skipping confirmation email');
+      } else {
+        console.warn('Invalid email format — skipping confirmation email:', trimmedEmail);
       }
 
       if (orderId) navigate(`/orders/${orderId}`);
