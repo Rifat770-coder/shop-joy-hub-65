@@ -81,19 +81,20 @@ export const useProduct = (slugOrId: string) => {
   return useQuery({
     queryKey: ['products', slugOrId],
     queryFn: async () => {
-      // If it looks like a UUID, fetch directly
       const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+      // UUID: fetch directly — fastest path
       if (uuidPattern.test(slugOrId)) {
         const response = await databases.getDocument(DATABASE_ID, COLLECTIONS.PRODUCTS, slugOrId);
         return normalizeProduct(response as unknown as AppwriteProduct);
       }
 
-      // Slug-based: fetch all products and find by slug match
+      // Slug-based: fetch all and match by slug
       const { slugify } = await import('@/lib/slug');
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.PRODUCTS,
-        [Query.limit(500)]
+        [Query.limit(500), Query.orderDesc('$createdAt')]
       );
 
       const match = response.documents.find(
@@ -104,6 +105,9 @@ export const useProduct = (slugOrId: string) => {
       return normalizeProduct(match as unknown as AppwriteProduct);
     },
     enabled: !!slugOrId,
+    staleTime: 1000 * 60 * 5,
+    gcTime: 1000 * 60 * 10,
+    retry: 2,
   });
 };
 

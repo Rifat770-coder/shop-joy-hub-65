@@ -47,7 +47,7 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { formatCurrency } = useCurrency();
 
-  const { data: product, isLoading } = useProduct(id || '');
+  const { data: product, isLoading, isFetching, isError } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
   const [modalOpen, setModalOpen] = useState(false);
   
@@ -70,7 +70,8 @@ const ProductDetail = () => {
     });
   }
 
-  if (isLoading) {
+  // Show loader while fetching — never show "Not Found" during load
+  if (isLoading || isFetching) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -82,7 +83,8 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  // Only show Not Found after fetch is truly complete and returned nothing
+  if (!product && !isLoading && !isFetching) {
     return (
       <div className="min-h-screen flex flex-col">
         <Header />
