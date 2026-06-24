@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Star, ShoppingCart, Eye, TrendingUp } from 'lucide-react';
 import { usePopularProducts } from '@/hooks/usePopularProducts';
 import { Button } from '@/components/ui/button';
@@ -8,12 +8,14 @@ import { useUserBehaviorTracking } from '@/hooks/useAnalytics';
 import { useCart } from '@/context/CartContext';
 import { getPrimaryImage } from '@/lib/image-utils';
 import { useCurrency } from '@/hooks/useCurrency';
+import { productSlug } from '@/lib/slug';
 
 export function PopularProducts() {
   const { data: popularProducts = [], isLoading } = usePopularProducts(8);
   const { trackProductView, trackAddToCart } = useUserBehaviorTracking();
   const { addToCart } = useCart();
   const { formatCurrency } = useCurrency();
+  const navigate = useNavigate();
 
   const handleProductView = (product: any) => {
     trackProductView(product.id, product.name, '/');
@@ -94,7 +96,8 @@ export function PopularProducts() {
             {popularProducts.map((product, index) => (
               <Card
                 key={product.id}
-                className={`group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-slide-up animate-stagger-${Math.min(index + 1, 8)} border-border bg-card`}
+                className={`group hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-slide-up animate-stagger-${Math.min(index + 1, 8)} border-border bg-card cursor-pointer`}
+                onClick={() => navigate(`/products/${productSlug(product.name, product.id)}`)}
               >
                 <CardContent className="p-0">
                   <div className="relative overflow-hidden rounded-t-lg">
@@ -145,7 +148,7 @@ export function PopularProducts() {
                           size="sm"
                           variant="secondary"
                           className="h-8 w-8 p-0 rounded-full bg-white/90 hover:bg-white"
-                          onClick={() => handleProductView(product)}
+                          onClick={(e) => { e.stopPropagation(); handleProductView(product); navigate(`/products/${productSlug(product.name, product.id)}`); }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -164,8 +167,8 @@ export function PopularProducts() {
                     {/* Product Info */}
                     <div className="p-4">
                       <Link
-                        to={`/products/${product.id}`}
-                        onClick={() => handleProductView(product)}
+                        to={`/products/${productSlug(product.name, product.id)}`}
+                        onClick={(e) => { e.stopPropagation(); handleProductView(product); }}
                         className="block"
                       >
                         <h3 className="font-semibold text-sm mb-2 line-clamp-2 group-hover:text-primary transition-colors duration-300">
@@ -200,7 +203,7 @@ export function PopularProducts() {
                         className="w-full font-semibold"
                         size="sm"
                         disabled={product.stock <= 0}
-                        onClick={() => handleAddToCart(product)}
+                        onClick={(e) => { e.stopPropagation(); handleAddToCart(product); }}
                       >
                         <ShoppingCart className="h-4 w-4 mr-2" />
                         {product.stock <= 0 ? 'Out of Stock' : 'Add to Cart'}
