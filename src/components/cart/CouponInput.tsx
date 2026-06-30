@@ -38,9 +38,9 @@ export function CouponInput({ orderTotal, appliedCoupon, onCouponApplied }: Coup
                 {appliedCoupon.coupon.code}
               </p>
               <p className="text-xs text-muted-foreground">
-                {appliedCoupon.coupon.discount_type === 'percentage'
-                  ? `${appliedCoupon.coupon.discount_value}% off`
-                  : `$${appliedCoupon.coupon.discount_value.toFixed(2)} off`}
+                {appliedCoupon.coupon.discountType === 'percentage'
+                  ? `${appliedCoupon.coupon.discountValue}% off`
+                  : `${appliedCoupon.coupon.discountValue?.toFixed(0)} BDT off`}
               </p>
             </div>
           </div>

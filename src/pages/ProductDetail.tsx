@@ -28,7 +28,6 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
 import { useCurrency } from '@/hooks/useCurrency';
 import { normalizeImageUrl } from '@/lib/image-utils';
-import { GuestCheckoutModal } from '@/components/checkout/GuestCheckoutModal';
 
 // Build gallery from product's actual images only (pipe-separated)
 const getGalleryImages = (image: string | null | undefined): string[] => {
@@ -49,7 +48,6 @@ const ProductDetail = () => {
 
   const { data: product, isLoading, isFetching, isError } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
-  const [modalOpen, setModalOpen] = useState(false);
   
   const {
     reviews,
@@ -255,9 +253,23 @@ const ProductDetail = () => {
               <Separator />
 
               {/* Description */}
-              <p className="text-muted-foreground leading-relaxed">
-                {product.description}
-              </p>
+              <div className="text-muted-foreground leading-relaxed space-y-1.5">
+                {product.description?.split('\n').map((line, i) => {
+                  const trimmed = line.trim();
+                  if (!trimmed) return null;
+                  // Lines starting with * are bullet points
+                  if (trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                    const text = trimmed.replace(/^[*•]\s*/, '');
+                    return (
+                      <div key={i} className="flex items-start gap-2">
+                        <span className="text-primary mt-1 shrink-0">•</span>
+                        <span>{text}</span>
+                      </div>
+                    );
+                  }
+                  return <p key={i}>{trimmed}</p>;
+                })}
+              </div>
 
               {/* Stock Status */}
               <div className="flex items-center gap-2">
@@ -312,7 +324,7 @@ const ProductDetail = () => {
                   className="flex-1 gap-1 md:gap-2 text-xs md:text-sm px-2 md:px-4"
                   onClick={() => {
                     addToCart(cartProduct as any, quantity);
-                    setModalOpen(true);
+                    navigate('/cart');
                   }}
                   disabled={product.stock === 0}
                 >
@@ -363,22 +375,21 @@ const ProductDetail = () => {
             <TabsContent value="description" className="mt-6">
               <div className="bg-card border border-border rounded-xl p-6 md:p-8">
                 <h3 className="text-xl font-semibold mb-4">Product Description</h3>
-                <div className="prose prose-sm max-w-none text-muted-foreground space-y-4">
-                  <p>{product.description}</p>
-                  <p>
-                    Experience premium quality with this exceptional product. Carefully crafted 
-                    with attention to detail, it combines functionality with elegant design. 
-                    Whether you're looking for everyday reliability or special occasion excellence, 
-                    this product delivers on all fronts.
-                  </p>
-                  <h4 className="text-foreground font-medium mt-6 mb-2">Key Features:</h4>
-                  <ul className="list-disc list-inside space-y-2">
-                    <li>Premium quality materials for durability</li>
-                    <li>Ergonomic design for comfortable use</li>
-                    <li>Modern aesthetic that complements any style</li>
-                    <li>Easy maintenance and care</li>
-                    <li>Backed by our satisfaction guarantee</li>
-                  </ul>
+                <div className="text-muted-foreground space-y-1.5 leading-relaxed">
+                  {product.description?.split('\n').map((line, i) => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return <div key={i} className="h-2" />;
+                    if (trimmed.startsWith('*') || trimmed.startsWith('•')) {
+                      const text = trimmed.replace(/^[*•]\s*/, '');
+                      return (
+                        <div key={i} className="flex items-start gap-2">
+                          <span className="text-primary mt-1 shrink-0">•</span>
+                          <span>{text}</span>
+                        </div>
+                      );
+                    }
+                    return <p key={i}>{trimmed}</p>;
+                  })}
                 </div>
               </div>
             </TabsContent>
@@ -445,12 +456,6 @@ const ProductDetail = () => {
         </div>
       </main>
       <Footer />
-
-      <GuestCheckoutModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        paymentType="cod"
-      />
     </div>
   );
 };

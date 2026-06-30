@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Star, Heart, ShoppingCart, Zap } from 'lucide-react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -7,8 +7,6 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useCurrency } from '@/hooks/useCurrency';
 import { getPrimaryImage } from '@/lib/image-utils';
 import { productSlug } from '@/lib/slug';
-import { useState } from 'react';
-import { GuestCheckoutModal } from '@/components/checkout/GuestCheckoutModal';
 
 interface ProductCardProps {
   product: Product;
@@ -18,7 +16,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const { formatCurrency } = useCurrency();
-  const [modalOpen, setModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -26,14 +24,13 @@ export function ProductCard({ product }: ProductCardProps) {
 
   const handleBuyNow = () => {
     addToCart(product);
-    setModalOpen(true);
+    navigate('/cart');
   };
 
   const favorite = isFavorite(product.id);
 
   return (
-    <>
-      <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in flex flex-col">
+    <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in flex flex-col">
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Link to={`/products/${productSlug(product.name, product.id)}`}>
@@ -109,12 +106,5 @@ export function ProductCard({ product }: ProductCardProps) {
         </div>
       </div>
     </div>
-
-    <GuestCheckoutModal
-      open={modalOpen}
-      onClose={() => setModalOpen(false)}
-      paymentType="cod"
-    />
-    </>
   );
 }

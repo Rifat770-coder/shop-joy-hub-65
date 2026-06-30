@@ -288,6 +288,7 @@ const Cart = () => {
         open={checkoutModal.open}
         onClose={() => setCheckoutModal({ open: false, type: 'cod' })}
         paymentType={checkoutModal.type}
+        appliedCoupon={appliedCoupon}
       />
     </div>
   );

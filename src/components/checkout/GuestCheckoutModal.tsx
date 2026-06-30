@@ -7,11 +7,13 @@ import { toast } from '@/hooks/use-toast';
 import { ExecutionMethod, ID } from 'appwrite';
 import { getPrimaryImage } from '@/lib/image-utils';
 import { useNavigate } from 'react-router-dom';
+import { AppliedCoupon } from '@/hooks/useCoupons';
 
 interface GuestCheckoutModalProps {
   open: boolean;
   onClose: () => void;
   paymentType: 'cod' | 'online';
+  appliedCoupon?: AppliedCoupon | null;
 }
 
 type Step = 'form' | 'payment-select' | 'payment-txn';
@@ -30,7 +32,7 @@ const parseSettingValue = <T,>(value: unknown, fallback: T): T => {
   try { return JSON.parse(value) as T; } catch { return fallback; }
 };
 
-export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }: GuestCheckoutModalProps) {
+export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, appliedCoupon }: GuestCheckoutModalProps) {
   const { items, totalPrice, clearCart } = useCart();
   const navigate = useNavigate();
 
@@ -71,17 +73,29 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
         if (doc?.value) {
           const opts = parseSettingValue<ShippingOption[]>(doc.value, []);
           const enabled = opts.filter((o) => o.enabled);
-          setShippingOptions(enabled);
-          if (enabled.length > 0) setSelectedShipping(enabled[0].id);
+          if (enabled.length > 0) {
+            setShippingOptions(enabled);
+            setSelectedShipping(enabled[0].id);
+            return;
+          }
         }
       } catch {}
+      // Fallback: default shipping options
+      const defaults: ShippingOption[] = [
+        { id: 'inside-dhaka', name: 'Inside Dhaka', price: 80, estimatedDays: '1-2 days', enabled: true },
+        { id: 'outside-dhaka', name: 'Outside Dhaka', price: 120, estimatedDays: '3-5 days', enabled: true },
+      ];
+      setShippingOptions(defaults);
+      setSelectedShipping('inside-dhaka');
     })();
   }, [open]);
 
   const selectedOpt = shippingOptions.find((o) => o.id === selectedShipping) ?? shippingOptions[0] ?? null;
   const shippingCost = selectedOpt?.price ?? 0;
   const isOnline = step === 'payment-select' || step === 'payment-txn';
-  const discount = isOnline ? ONLINE_DISCOUNT : 0;
+  const onlineDiscount = isOnline ? ONLINE_DISCOUNT : 0;
+  const couponDiscount = appliedCoupon?.discountAmount || 0;
+  const discount = onlineDiscount + couponDiscount;
   const total = totalPrice + shippingCost - discount;
 
   const validateForm = () => {
@@ -206,7 +220,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
             customerName: name,
             items: fallbackItems,
             subtotal: totalPrice,
-            discount: txnId ? ONLINE_DISCOUNT : 0,
+            discount: discount,
             shippingCost,
             total,
             shippingAddress,
@@ -331,9 +345,15 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType }:
                 <span className="text-gray-600">ডেলিভারি চার্জ</span>
                 <span className="font-medium">{shippingCost === 0 ? 'Free' : `${shippingCost}Tk`}</span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-green-600">
+                  <span>কুপন ছাড় ({appliedCoupon?.coupon.code})</span>
+                  <span>-{couponDiscount.toFixed(0)}Tk</span>
+                </div>
+              )}
               <div className="flex justify-between font-bold text-base pt-1 border-t border-green-200">
                 <span>সর্বমোট</span>
-                <span>{(totalPrice + shippingCost).toFixed(0)}Tk</span>
+                <span>{total.toFixed(0)}Tk</span>
               </div>
             </div>
 

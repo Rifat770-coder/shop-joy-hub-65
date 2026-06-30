@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { databases, functions, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
+import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { Coupon } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
 import { Query } from 'appwrite';
@@ -33,65 +33,72 @@ export function useCoupons() {
 
   const validateCoupon = useCallback(async (code: string, orderTotal: number): Promise<AppliedCoupon | null> => {
     if (!code.trim()) {
-      toast({
-        title: 'Invalid code',
-        description: 'Please enter a coupon code.',
-        variant: 'destructive',
-      });
+      toast({ title: 'Invalid code', description: 'Please enter a coupon code.', variant: 'destructive' });
       return null;
     }
 
     setLoading(true);
-
     try {
-      // Use Appwrite function for coupon validation
-      const response = await functions.createExecution(
-        'validate-coupon', // Function ID
-        JSON.stringify({
-          code: code,
-          orderTotal: orderTotal
-        }),
-        false, // async
-        '/', // path
-        'POST' // method
+      // Query Appwrite directly — no function needed
+      const response = await databases.listDocuments(
+        DATABASE_ID,
+        COLLECTIONS.COUPONS,
+        [
+          Query.equal('code', code.trim().toUpperCase()),
+          Query.equal('isActive', true),
+        ]
       );
 
-      const result = JSON.parse(response.responseBody) as ValidateCouponResponse;
-
-      if (!result.valid) {
-        toast({
-          title: 'Invalid coupon',
-          description: result.message,
-          variant: 'destructive',
-        });
+      if (response.documents.length === 0) {
+        toast({ title: 'Invalid coupon', description: 'Coupon not found or inactive.', variant: 'destructive' });
         return null;
       }
 
+      const coupon = response.documents[0] as unknown as Coupon;
+      const now = new Date();
+
+      if (coupon.startsAt && new Date(coupon.startsAt) > now) {
+        toast({ title: 'Invalid coupon', description: 'Coupon is not yet valid.', variant: 'destructive' });
+        return null;
+      }
+      if (coupon.expiresAt && new Date(coupon.expiresAt) < now) {
+        toast({ title: 'Expired coupon', description: 'This coupon has expired.', variant: 'destructive' });
+        return null;
+      }
+      if (coupon.maxUses && coupon.usedCount >= coupon.maxUses) {
+        toast({ title: 'Invalid coupon', description: 'Coupon usage limit reached.', variant: 'destructive' });
+        return null;
+      }
+      if (coupon.minimumOrder && orderTotal < coupon.minimumOrder) {
+        toast({ title: 'Invalid coupon', description: `Minimum order of ${coupon.minimumOrder} BDT required.`, variant: 'destructive' });
+        return null;
+      }
+
+      let discountAmount = 0;
+      if (coupon.discountType === 'percentage') {
+        discountAmount = orderTotal * (coupon.discountValue / 100);
+      } else {
+        discountAmount = coupon.discountValue;
+      }
+      discountAmount = Math.min(discountAmount, orderTotal);
+
       const applied: AppliedCoupon = {
         coupon: {
-          id: result.couponId!,
-          code: result.code!,
-          discountType: result.discountType as 'percentage' | 'fixed',
-          discountValue: result.discountValue!,
+          id: coupon.$id,
+          code: coupon.code,
+          discountType: coupon.discountType,
+          discountValue: coupon.discountValue,
         },
-        discountAmount: result.discountAmount!,
+        discountAmount,
       };
 
       setAppliedCoupon(applied);
-
-      toast({
-        title: 'Coupon applied!',
-        description: `You saved $${result.discountAmount!.toFixed(2)}`,
-      });
-
+      toast({ title: 'Coupon applied!', description: `You saved ${discountAmount.toFixed(0)} BDT` });
       return applied;
-    } catch (error: any) {
-      console.error('Error validating coupon:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to validate coupon.',
-        variant: 'destructive',
-      });
+
+    } catch (error) {
+      console.error('Coupon validation error:', error);
+      toast({ title: 'Error', description: 'Failed to validate coupon.', variant: 'destructive' });
       return null;
     } finally {
       setLoading(false);
