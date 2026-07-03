@@ -130,7 +130,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
       await navigator.clipboard.writeText(PAYMENT_NUMBERS[onlineMethod]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
+    } catch {
       // Clipboard copy failed silently
     }
   };
