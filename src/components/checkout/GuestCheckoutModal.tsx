@@ -79,7 +79,9 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
             return;
           }
         }
-      } catch {}
+      } catch {
+        // Silently ignore errors, use fallback
+      }
       // Fallback: default shipping options
       const defaults: ShippingOption[] = [
         { id: 'inside-dhaka', name: 'Inside Dhaka', price: 80, estimatedDays: '1-2 days', enabled: true },
@@ -128,7 +130,9 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
       await navigator.clipboard.writeText(PAYMENT_NUMBERS[onlineMethod]);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
-    } catch {}
+    } catch (error) {
+      // Clipboard copy failed silently
+    }
   };
 
   const handleSubmitPayment = async () => {
@@ -166,7 +170,7 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
             } : null,
             guestName: name,
             guestPhone: phone,
-            discount: txnId ? ONLINE_DISCOUNT : 0,
+            discount: txnId ? onlineDiscount + (couponDiscount || 0) : couponDiscount,
           }),
           false, '/', ExecutionMethod.POST
         );
