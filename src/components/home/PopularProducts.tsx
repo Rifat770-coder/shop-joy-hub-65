@@ -187,12 +187,12 @@ export function PopularProducts() {
                       </div>
 
                       {/* Price */}
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="font-black text-base text-primary">
+                      <div className="flex items-center gap-2 mb-3 max-md:flex-col max-md:items-start max-md:gap-0.5 max-md:overflow-visible max-md:w-full max-md:min-w-0">
+                        <span className="font-black text-base text-primary max-md:text-[15px] max-md:leading-tight max-md:w-full max-md:max-w-full max-md:overflow-visible max-md:whitespace-nowrap">
                           {formatCurrency(product.price)}
                         </span>
                         {product.originalPrice && product.originalPrice > product.price && (
-                          <span className="text-sm text-muted-foreground line-through">
+                          <span className="text-sm text-muted-foreground line-through max-md:text-xs max-md:leading-tight max-md:w-full max-md:max-w-full max-md:overflow-visible max-md:whitespace-nowrap">
                             {formatCurrency(product.originalPrice)}
                           </span>
                         )}

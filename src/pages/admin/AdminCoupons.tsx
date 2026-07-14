@@ -285,12 +285,12 @@ const AdminCoupons = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-md:gap-2">
           <div>
-            <h1 className="text-3xl font-bold">Coupons & Discounts</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold max-md:text-2xl">Coupons & Discounts</h1>
+            <p className="text-muted-foreground mt-1 max-md:text-sm">
               Manage promotional codes and special offers
             </p>
           </div>
@@ -444,7 +444,7 @@ const AdminCoupons = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-md:gap-3">
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-lg">

@@ -300,12 +300,12 @@ export default function AdminAnalytics() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8 max-md:space-y-4">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Analytics</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold max-md:text-2xl">Analytics</h1>
+            <p className="text-muted-foreground mt-1 max-md:text-sm">
               Track your store's performance and trends
             </p>
           </div>
@@ -327,7 +327,7 @@ export default function AdminAnalytics() {
 
         {/* Stats Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-md:gap-3">
             {[1, 2, 3, 4].map((i) => (
               <Card key={i}>
                 <CardHeader className="pb-2">
@@ -341,7 +341,7 @@ export default function AdminAnalytics() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-md:gap-3">
             {stats.map((stat, index) => (
               <Card key={stat.title} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -372,7 +372,7 @@ export default function AdminAnalytics() {
         )}
 
         {/* Charts */}
-        <Tabs defaultValue="revenue" className="space-y-6">
+        <Tabs defaultValue="revenue" className="space-y-4 md:space-y-6 max-md:space-y-3">
           <TabsList>
             <TabsTrigger value="revenue">Revenue</TabsTrigger>
             <TabsTrigger value="orders">Orders</TabsTrigger>
@@ -574,10 +574,8 @@ export default function AdminAnalytics() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="customer-insights">
-            <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
+          </TabsContent>            <TabsContent value="customer-insights">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4 max-md:gap-3">
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm text-muted-foreground">Active Customers</CardTitle>

@@ -69,17 +69,17 @@ const AdvancedAnalytics = () => {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8 max-md:space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Advanced Analytics</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold max-md:text-2xl">Advanced Analytics</h1>
+          <p className="text-muted-foreground mt-1 max-md:text-sm">
             Deep insights into customer behavior, sales forecasting, and business intelligence
           </p>
         </div>
 
         {/* Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-md:gap-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Customers</CardTitle>
@@ -127,7 +127,7 @@ const AdvancedAnalytics = () => {
 
         {/* Analytics Tabs */}
         <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 max-md:text-xs max-md:gap-0.5">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="ltv">Customer LTV</TabsTrigger>
             <TabsTrigger value="forecast">Sales Forecast</TabsTrigger>

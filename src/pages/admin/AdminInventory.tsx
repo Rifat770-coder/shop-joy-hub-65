@@ -272,11 +272,11 @@ export default function AdminInventory() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8 max-md:space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Inventory Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold max-md:text-2xl">Inventory Management</h1>
+          <p className="text-muted-foreground mt-1 max-md:text-sm">
             Track stock levels and manage product inventory
           </p>
         </div>
@@ -338,7 +338,7 @@ export default function AdminInventory() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-md:gap-3">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
@@ -380,7 +380,7 @@ export default function AdminInventory() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 max-md:gap-2">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input

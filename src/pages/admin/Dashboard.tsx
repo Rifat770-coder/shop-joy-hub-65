@@ -131,17 +131,17 @@ export default function Dashboard() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8 max-md:space-y-4">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold max-md:text-2xl">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 max-md:text-sm">
             Welcome back! Here's what's happening with your store.
           </p>
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-md:gap-3">
           {stats.map((stat, index) => (
             <Card key={stat.title} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -160,7 +160,7 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-6">
+        <div className="grid lg:grid-cols-2 gap-6 max-md:gap-4">
           {/* Recent Orders */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">

@@ -30,7 +30,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const favorite = isFavorite(product.id);
 
   return (
-    <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in flex flex-col">
+    <div className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg hover:border-primary/20 transition-all duration-300 animate-fade-in flex flex-col min-w-0">
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Link to={`/products/${productSlug(product.name, product.id)}`}>
@@ -80,29 +80,40 @@ export function ProductCard({ product }: ProductCardProps) {
       </div>
 
       {/* Info */}
-      <div className="p-3 flex flex-col gap-1.5 flex-1">
+      <div className="p-3 flex flex-col gap-1.5 flex-1 min-w-0">
         <p className="text-[10px] font-semibold text-primary uppercase tracking-wider">{product.category}</p>
 
-        <Link to={`/products/${productSlug(product.name, product.id)}`}>
+        <Link to={`/products/${productSlug(product.name, product.id)}`} className="min-w-0">
           <h3 className="text-sm font-semibold line-clamp-2 text-foreground hover:text-primary transition-colors leading-snug">
             {product.name}
           </h3>
         </Link>
 
-        <div className="flex items-center gap-1 mt-auto">
-          <div className="flex">
+        <div className="flex items-center gap-1 min-w-0">
+          <div className="flex shrink-0">
             {Array.from({ length: 5 }).map((_, i) => (
               <Star key={i} className={`h-3 w-3 ${i < Math.round(product.rating) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'}`} />
             ))}
           </div>
-          <span className="text-[10px] text-muted-foreground">({product.reviews})</span>
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap">({product.reviews})</span>
         </div>
 
-        <div className="flex items-baseline gap-2">
-          <span className="text-base font-black text-primary">{formatCurrency(product.price)}</span>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 min-w-0 max-md:flex-col max-md:items-start max-md:gap-0.5 max-md:overflow-visible">
+          <span className="text-base font-black text-primary whitespace-nowrap max-md:text-base max-md:leading-tight">{formatCurrency(product.price)}</span>
           {product.originalPrice && Number(product.originalPrice) > Number(product.price) && (
-            <span className="text-xs text-muted-foreground line-through">{formatCurrency(product.originalPrice)}</span>
+            <span className="text-xs text-muted-foreground line-through whitespace-nowrap max-md:text-xs max-md:leading-tight max-md:overflow-visible max-md:max-w-full">{formatCurrency(product.originalPrice)}</span>
           )}
+        </div>
+
+        {/* Add to Cart - mobile only */}
+        <div className="md:hidden mt-auto pt-1.5">
+          <Button
+            onClick={(e) => { e.preventDefault(); addToCart(product); }}
+            className="w-full h-11 text-sm font-semibold gap-1.5"
+          >
+            <ShoppingCart className="h-4 w-4 shrink-0" />
+            Add to Cart
+          </Button>
         </div>
       </div>
     </div>

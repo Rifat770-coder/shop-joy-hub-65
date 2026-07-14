@@ -442,12 +442,12 @@ export default function AdminOrders() {
 
   return (
     <AdminLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-md:gap-2">
           <div>
-            <h1 className="text-3xl font-bold">Orders</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold max-md:text-2xl">Orders</h1>
+            <p className="text-muted-foreground mt-1 max-md:text-sm">
               Track and manage customer orders (real-time updates enabled)
             </p>
           </div>
@@ -458,7 +458,7 @@ export default function AdminOrders() {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
+        <div className="flex flex-col sm:flex-row gap-3 max-md:gap-2">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input

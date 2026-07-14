@@ -317,19 +317,19 @@ export default function AdminCustomers() {
 
   return (
     <AdminLayout>
-      <div className="space-y-8">
+      <div className="space-y-6 md:space-y-8 max-md:space-y-4">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 max-md:gap-2">
           <div>
-            <h1 className="text-3xl font-bold">Customers</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold max-md:text-2xl">Customers</h1>
+            <p className="text-muted-foreground mt-1 max-md:text-sm">
               Manage your customers and view their order history
             </p>
           </div>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-md:gap-3">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">
