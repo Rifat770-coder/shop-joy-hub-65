@@ -247,7 +247,7 @@ const Deals = () => {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
               {topDeals.map((product, index) => (
                 <div
                   key={product.id}
@@ -271,7 +271,7 @@ const Deals = () => {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:grid-cols-4">
               {discountedProducts.map((product, index) => (
                 <div
                   key={product.id}

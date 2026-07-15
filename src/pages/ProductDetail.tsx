@@ -163,14 +163,14 @@ const ProductDetail = () => {
           </nav>
 
           {/* Product Section */}
-          <div className="grid lg:grid-cols-2 gap-6 md:gap-12 mb-8 md:mb-16">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] xl:grid-cols-[620px_minmax(0,1fr)] gap-6 xl:gap-8 mb-6 lg:mb-10 items-start">
             {/* Image Gallery */}
-            <div className="space-y-4">
+            <div className="space-y-4 lg:max-w-xl lg:mx-auto">
               <div className="relative aspect-square bg-secondary/50 rounded-2xl overflow-hidden group">
                 <img
                   src={galleryImages[selectedImageIndex]}
                   alt={product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain p-2"
                 />
                 
                 {/* Navigation Arrows - only show when multiple images */}
