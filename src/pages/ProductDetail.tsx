@@ -7,22 +7,21 @@ import {
   Zap,
   Minus, 
   Plus, 
-  Truck, 
-  Shield, 
-  RefreshCw,
   ChevronLeft,
   ChevronRight,
   Loader2,
+  Package,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ReviewList } from '@/components/reviews/ReviewList';
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { useProduct, useProducts } from '@/hooks/useProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
@@ -48,6 +47,7 @@ const ProductDetail = () => {
 
   const { data: product, isLoading, isFetching, isError } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
+  const { data: salesMap = {} } = useProductSales();
   
   const {
     reviews,
@@ -250,26 +250,7 @@ const ProductDetail = () => {
                 </span>
               </div>
 
-              <Separator />
 
-              {/* Description */}
-              <div className="text-muted-foreground leading-relaxed space-y-1.5">
-                {product.description?.split('\n').map((line, i) => {
-                  const trimmed = line.trim();
-                  if (!trimmed) return null;
-                  // Lines starting with * are bullet points
-                  if (trimmed.startsWith('*') || trimmed.startsWith('•')) {
-                    const text = trimmed.replace(/^[*•]\s*/, '');
-                    return (
-                      <div key={i} className="flex items-start gap-2">
-                        <span className="text-primary mt-1 shrink-0">•</span>
-                        <span>{text}</span>
-                      </div>
-                    );
-                  }
-                  return <p key={i}>{trimmed}</p>;
-                })}
-              </div>
 
               {/* Stock Status */}
               <div className="flex items-center gap-2">
@@ -341,23 +322,53 @@ const ProductDetail = () => {
                 </Button>
               </div>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-2 md:gap-4 pt-4">
-                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
-                  <Truck className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
-                  <span className="text-[10px] md:text-xs font-medium">Free Shipping</span>
-                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">Orders $50+</span>
-                </div>
-                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
-                  <Shield className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
-                  <span className="text-[10px] md:text-xs font-medium">Secure Pay</span>
-                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">100% Protected</span>
-                </div>
-                <div className="flex flex-col items-center text-center p-2 md:p-4 bg-secondary/50 rounded-lg">
-                  <RefreshCw className="h-5 w-5 md:h-6 md:w-6 text-primary mb-1 md:mb-2" />
-                  <span className="text-[10px] md:text-xs font-medium">Easy Returns</span>
-                  <span className="text-[10px] md:text-xs text-muted-foreground hidden md:block">30-day Policy</span>
-                </div>
+              {/* Delivery & Return Policy Accordion */}
+              <div className="bg-card border border-border rounded-xl overflow-hidden">
+                <Accordion type="single" collapsible>
+                  <AccordionItem value="delivery">
+                    <AccordionTrigger className="px-4 py-3 text-sm font-semibold hover:no-underline">
+                      <div className="flex items-center gap-2">
+                        <Package className="h-4 w-4 text-primary" />
+                        Delivery &amp; Return Policy
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-3 text-sm text-muted-foreground">
+                        <div>
+                          <h4 className="font-medium text-foreground mb-1">Delivery Options</h4>
+                          <ul className="space-y-1.5">
+                            <li className="flex justify-between">
+                              <span>Inside Dhaka</span>
+                              <span className="font-medium text-success">60 BDT</span>
+                            </li>
+                            <li className="flex justify-between">
+                              <span>Outside Dhaka</span>
+                              <span className="font-medium text-success">120 BDT</span>
+                            </li>
+                            <li className="flex justify-between">
+                              <span>Cash on Delivery</span>
+                              <span className="font-medium text-success">Free</span>
+                            </li>
+                          </ul>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground mb-1">Return Policy</h4>
+                          <p>
+                            Products can be returned within 7 days of delivery if unused and 
+                            in original packaging. Contact our support team to initiate a return.
+                          </p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground mb-1">Secure Payment</h4>
+                          <p>
+                            We accept Cash on Delivery, bKash, and Nagad. Your payment 
+                            information is processed securely.
+                          </p>
+                        </div>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
             </div>
           </div>
@@ -448,7 +459,7 @@ const ProductDetail = () => {
               <h2 className="text-2xl font-bold mb-6">Related Products</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct as any} />
+                  <ProductCard key={relatedProduct.id} product={relatedProduct as any} salesCount={salesMap[relatedProduct.id]} />
                 ))}
               </div>
             </section>

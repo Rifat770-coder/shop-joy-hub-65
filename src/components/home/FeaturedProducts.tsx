@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2 } from 'lucide-react';
 import { useFeaturedProducts } from '@/hooks/useProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { ProductCard } from '@/components/products/ProductCard';
 
 export function FeaturedProducts() {
   const { data: products = [], isLoading } = useFeaturedProducts();
+  const { data: salesMap = {} } = useProductSales();
   const featuredProducts = products.slice(0, 4);
 
   if (isLoading) {
@@ -42,7 +44,7 @@ export function FeaturedProducts() {
               key={product.id}
               className={`animate-slide-up animate-stagger-${index + 1}`}
             >
-              <ProductCard product={product as any} />
+              <ProductCard product={product as any} salesCount={salesMap[product.id]} />
             </div>
           ))}
         </div>

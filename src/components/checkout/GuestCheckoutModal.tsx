@@ -320,20 +320,23 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
                 <p className="text-sm font-semibold text-gray-600 mb-2">ডেলিভারি চার্জ সেলেক্ট করুন..</p>
                 <div className="space-y-2">
                   {shippingOptions.map((opt) => (
-                    <label key={opt.id} onClick={() => setSelectedShipping(opt.id)}
-                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors ${
-                        selectedShipping === opt.id ? 'border-green-500 bg-green-50' : 'border-gray-200'
-                      }`}>
+                    <div
+                      key={opt.id}
+                      onClick={() => setSelectedShipping(opt.id)}
+                      className={`flex items-center justify-between p-3 border rounded-lg cursor-pointer transition-colors select-none ${
+                        selectedShipping === opt.id ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-green-300'
+                      }`}
+                    >
                       <div className="flex items-center gap-3">
-                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                        <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
                           selectedShipping === opt.id ? 'border-green-500' : 'border-gray-400'
                         }`}>
                           {selectedShipping === opt.id && <div className="w-2 h-2 rounded-full bg-green-500" />}
                         </div>
-                        <span className="text-sm">{opt.name}</span>
+                        <span className="text-sm font-medium">{opt.name}</span>
                       </div>
-                      <span className="text-sm font-semibold">{opt.price === 0 ? 'Free' : `${opt.price}Tk`}</span>
-                    </label>
+                      <span className="text-sm font-bold">{opt.price === 0 ? 'Free' : `${opt.price}Tk`}</span>
+                    </div>
                   ))}
                 </div>
               </div>

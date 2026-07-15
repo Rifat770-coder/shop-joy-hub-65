@@ -17,6 +17,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { Query, ID } from 'appwrite';
 import { useProducts } from '@/hooks/useProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { ProductCard } from '@/components/products/ProductCard';
 import { toast } from '@/hooks/use-toast';
 
@@ -33,6 +34,7 @@ const Profile = () => {
   const { orders, loading: ordersLoading } = useOrders();
   const { favorites, loading: favoritesLoading } = useFavorites();
   const { data: products = [] } = useProducts();
+  const { data: salesMap = {} } = useProductSales();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -320,7 +322,7 @@ const Profile = () => {
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
                       {favoriteProducts.map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard key={product.id} product={product} salesCount={salesMap[product.id]} />
                       ))}
                     </div>
                   )}

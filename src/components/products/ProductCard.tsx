@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingCart, Zap } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Zap, ShoppingBag } from 'lucide-react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
@@ -10,9 +10,10 @@ import { productSlug } from '@/lib/slug';
 
 interface ProductCardProps {
   product: Product;
+  salesCount?: number;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, salesCount }: ProductCardProps) {
   const { addToCart } = useCart();
   const { toggleFavorite, isFavorite } = useFavorites();
   const { formatCurrency } = useCurrency();
@@ -96,6 +97,12 @@ export function ProductCard({ product }: ProductCardProps) {
             ))}
           </div>
           <span className="text-[10px] text-muted-foreground whitespace-nowrap">({product.reviews})</span>
+          {salesCount !== undefined && salesCount > 0 && (
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap flex items-center gap-0.5 ml-1">
+              <ShoppingBag className="h-2.5 w-2.5" />
+              {salesCount.toLocaleString()}+ sold
+            </span>
+          )}
         </div>
 
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1 min-w-0 max-md:flex-col max-md:items-start max-md:gap-0.5 max-md:overflow-visible">

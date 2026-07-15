@@ -7,6 +7,7 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useProducts } from '@/hooks/useProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { useCurrency } from '@/hooks/useCurrency';
 
 interface DealProduct {
@@ -45,6 +46,7 @@ const flashDealEndDate = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
 
 const Deals = () => {
   const { data: products = [] } = useProducts();
+  const { data: salesMap = {} } = useProductSales();
   const [timeRemaining, setTimeRemaining] = useState(calculateTimeRemaining(flashDealEndDate));
   const { formatCurrency } = useCurrency();
 
@@ -252,7 +254,7 @@ const Deals = () => {
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} salesCount={salesMap[product.id]} />
                 </div>
               ))}
             </div>
@@ -276,7 +278,7 @@ const Deals = () => {
                   className="animate-fade-in"
                   style={{ animationDelay: `${Math.min(index, 8) * 0.05}s` }}
                 >
-                  <ProductCard product={product} />
+                  <ProductCard product={product} salesCount={salesMap[product.id]} />
                 </div>
               ))}
             </div>

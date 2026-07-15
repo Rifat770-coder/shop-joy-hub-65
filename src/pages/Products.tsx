@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
 import { useProducts } from '@/hooks/useProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -32,6 +33,7 @@ const Products = () => {
   const initialSearch = searchParams.get('search') || '';
   
   const { data: products = [], isLoading } = useProducts();
+  const { data: salesMap = {} } = useProductSales();
   
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     initialCategory ? [initialCategory] : []
@@ -339,7 +341,7 @@ const Products = () => {
                 <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-6">
                   {filteredProducts.map((product) => (
                     <div key={product.id} className="animate-fade-in">
-                      <ProductCard product={product as any} />
+                      <ProductCard product={product as any} salesCount={salesMap[product.id]} />
                     </div>
                   ))}
                 </div>

@@ -21,6 +21,7 @@ export function Header() {
     { href: '/products', label: 'Products' },
     { href: '/categories', label: 'Categories' },
     { href: '/deals', label: 'Deals' },
+    { href: '/about', label: 'About' },
   ];
 
   const isActive = (path: string) => location.pathname === path;

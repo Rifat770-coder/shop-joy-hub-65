@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus, Loader2, Zap } from 'lucide-react';
+import { Save, Store, Truck, Percent, Shield, Trash2, UserPlus, Loader2, Zap, Info, MessageCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 import { FlashSaleManager } from '@/components/admin/FlashSaleManager';
+import { Textarea } from '@/components/ui/textarea';
 
 interface AdminUser {
   id: string;
@@ -336,6 +337,10 @@ export default function AdminSettings() {
               <Shield className="h-4 w-4" />
               User Roles
             </TabsTrigger>
+            <TabsTrigger value="about" className="gap-2">
+              <Info className="h-4 w-4" />
+              About Page
+            </TabsTrigger>
           </TabsList>
 
           {/* Store Settings */}
@@ -598,6 +603,16 @@ export default function AdminSettings() {
             </Card>
           </TabsContent>
 
+          {/* About Page Settings */}
+          <TabsContent value="about">
+            <AboutPageSettings
+              storeSettings={storeSettings}
+              handleStoreFieldChange={handleStoreFieldChange}
+              saveSettings={saveSettings}
+              saving={saving}
+            />
+          </TabsContent>
+
           {/* User Roles Settings */}
           <TabsContent value="roles">
             <div className="space-y-6">
@@ -706,5 +721,138 @@ export default function AdminSettings() {
         </Tabs>
       </div>
     </AdminLayout>
+  );
+}
+
+// ============================================================
+// About Page Settings Sub-component
+// ============================================================
+
+interface AboutPageSettingsProps {
+  storeSettings: {
+    storeName: string;
+    storeEmail: string;
+    storePhone: string;
+    [key: string]: any;
+  };
+  handleStoreFieldChange: (field: string, value: any) => void;
+  saveSettings: () => Promise<void>;
+  saving: boolean;
+}
+
+function AboutPageSettings({
+  storeSettings,
+  handleStoreFieldChange,
+  saveSettings,
+  saving,
+}: AboutPageSettingsProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>About Page Content</CardTitle>
+        <CardDescription>
+          Manage content displayed on your About Us page.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Hero Section */}
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">
+              Contact Information for About Page
+            </h4>
+            <Separator className="mb-4" />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="storePhone" className="flex items-center gap-2">
+                <MessageCircle className="h-3.5 w-3.5" />
+                Phone / WhatsApp Number
+              </Label>
+              <Input
+                id="storePhone"
+                name="storePhone"
+                value={storeSettings.storePhone}
+                onChange={(e) => handleStoreFieldChange('storePhone', e.target.value)}
+                placeholder="+880 1234-567890"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for WhatsApp chat and contact display. Store Tab &rarr; Phone Number.
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="storeEmail">Contact Email</Label>
+              <Input
+                id="storeEmail"
+                name="storeEmail"
+                value={storeSettings.storeEmail}
+                onChange={(e) => handleStoreFieldChange('storeEmail', e.target.value)}
+                placeholder="support@example.com"
+              />
+              <p className="text-xs text-muted-foreground">
+                Used for contact display. Store Tab &rarr; Contact Email.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Overview */}
+        <div className="space-y-4">
+          <div>
+            <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wider mb-3">
+              Content Overview
+            </h4>
+            <Separator className="mb-4" />
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
+              <h5 className="font-semibold text-sm mb-2">Hero &amp; Brand Story</h5>
+              <p className="text-xs text-muted-foreground">
+                The hero title, description, brand story, mission, vision, and all text content
+                are managed in the central configuration file.
+              </p>
+            </div>
+            <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
+              <h5 className="font-semibold text-sm mb-2">Statistics &amp; Values</h5>
+              <p className="text-xs text-muted-foreground">
+                Trust statistics, core values, and trust process steps are defined
+                in the data configuration for easy editing.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div className="flex justify-end pt-4 border-t border-border">
+          <Button onClick={saveSettings} disabled={saving} className="gap-2">
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Save Contact Info
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
+          <p className="text-sm text-muted-foreground">
+            <strong>Editing all content:</strong> The About page text, statistics, mission/vision,
+            core values, and trust process are managed in{" "}
+            <code className="text-xs bg-muted px-1 py-0.5 rounded">src/data/about.ts</code>.
+            Contact info is managed from the{" "}
+            <strong>Store</strong> tab above.
+            Full admin management for all sections via the dashboard will be available in a future update.
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

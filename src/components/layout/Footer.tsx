@@ -106,6 +106,7 @@ export function Footer() {
                 { label: "All Products", to: "/products" },
                 { label: "Categories", to: "/categories" },
                 { label: "Deals", to: "/deals" },
+                { label: "About Us", to: "/about" },
                 { label: "Wishlist", to: "/wishlist" },
                 { label: "Track Order", to: "/track-order" },
               ].map(({ label, to }) => (
@@ -165,8 +166,12 @@ export function Footer() {
         <div className="container py-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <p className="text-slate-500 text-xs">© {new Date().getFullYear()} {storeName} BD. All rights reserved.</p>
           <div className="flex gap-4">
-            {["Privacy Policy", "Terms", "Support"].map((item) => (
-              <a key={item} href="#" className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{item}</a>
+            {[
+              { label: "Privacy Policy", to: "/privacy-policy" },
+              { label: "Shipping Policy", to: "/shipping-policy" },
+              { label: "Support", to: "/contact" },
+            ].map(({ label, to }) => (
+              <Link key={label} to={to} className="text-slate-500 hover:text-slate-300 text-xs transition-colors">{label}</Link>
             ))}
           </div>
         </div>

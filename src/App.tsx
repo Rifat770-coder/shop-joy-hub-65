@@ -43,6 +43,12 @@ const AdminPaymentApprovals = lazy(() => import("./pages/admin/AdminPaymentAppro
 const Wishlist = lazy(() => import("./pages/Wishlist"));
 const Checkout = lazy(() => import("./pages/Checkout"));
 const PaymentCallback = lazy(() => import("./pages/PaymentCallback"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const ShippingPolicy = lazy(() => import("./pages/ShippingPolicy"));
+const ReturnPolicy = lazy(() => import("./pages/ReturnPolicy"));
+const WarrantyPolicy = lazy(() => import("./pages/WarrantyPolicy"));
+const PrivacyPolicyPage = lazy(() => import("./pages/PrivacyPolicy"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -81,6 +87,8 @@ const App = () => (
                     <Route path="/products" element={<Products />} />
                     <Route path="/products/:id" element={<ProductDetail />} />
                     <Route path="/categories" element={<Categories />} />
+                    <Route path="/about" element={<About />} />
+                    <Route path="/contact" element={<Contact />} />
                     <Route path="/deals" element={<Deals />} />
                     <Route path="/cart" element={<Cart />} />
                     <Route path="/auth" element={<Auth />} />
@@ -88,6 +96,10 @@ const App = () => (
                     <Route path="/orders" element={<OrderHistory />} />
                     <Route path="/orders/:id" element={<OrderTracking />} />
                     <Route path="/track-order" element={<TrackOrder />} />
+                    <Route path="/shipping-policy" element={<ShippingPolicy />} />
+                    <Route path="/return-policy" element={<ReturnPolicy />} />
+                    <Route path="/warranty-policy" element={<WarrantyPolicy />} />
+                    <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                     <Route path="/wishlist" element={<Wishlist />} />
                     <Route path="/checkout" element={<Checkout />} />
                     <Route path="/payment/callback" element={<PaymentCallback />} />

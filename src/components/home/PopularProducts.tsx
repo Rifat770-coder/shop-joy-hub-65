@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Star, ShoppingCart, Eye, TrendingUp } from 'lucide-react';
+import { ArrowRight, Star, ShoppingCart, ShoppingBag, Eye, TrendingUp } from 'lucide-react';
 import { usePopularProducts } from '@/hooks/usePopularProducts';
+import { useProductSales } from '@/hooks/useProductSales';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -12,6 +13,7 @@ import { productSlug } from '@/lib/slug';
 
 export function PopularProducts() {
   const { data: popularProducts = [], isLoading } = usePopularProducts(8);
+  const { data: salesMap = {} } = useProductSales();
   const { trackProductView, trackAddToCart } = useUserBehaviorTracking();
   const { addToCart } = useCart();
   const { formatCurrency } = useCurrency();
@@ -184,6 +186,12 @@ export function PopularProducts() {
                         <span className="text-xs text-muted-foreground">
                           ({product.reviews || 0})
                         </span>
+                        {salesMap[product.id] > 0 && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-0.5 ml-1">
+                            <ShoppingBag className="h-2.5 w-2.5" />
+                            {salesMap[product.id].toLocaleString()}+ sold
+                          </span>
+                        )}
                       </div>
 
                       {/* Price */}
