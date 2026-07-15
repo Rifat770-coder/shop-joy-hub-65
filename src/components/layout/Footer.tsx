@@ -69,10 +69,10 @@ export function Footer() {
 
       {/* Main content */}
       <div className="container py-10">
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
 
           {/* Brand — full width on mobile */}
-          <div className="col-span-2 md:col-span-1 space-y-4">
+          <div className="sm:col-span-2 md:col-span-1 space-y-4">
             <Link to="/" className="inline-flex items-center gap-2">
               <img src="/2.png" alt="RealGadget BD" className="h-9 w-9 rounded-lg object-contain" />
               <span className="text-xl font-extrabold text-white tracking-tight">
@@ -101,7 +101,7 @@ export function Footer() {
           {/* Quick Links */}
           <div className="space-y-4">
             <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Shop</h4>
-            <ul className="space-y-2.5">
+            <ul className="grid grid-cols-2 md:grid-cols-1 gap-1.5 md:gap-2.5">
               {[
                 { label: "All Products", to: "/products" },
                 { label: "Categories", to: "/categories" },
@@ -121,7 +121,7 @@ export function Footer() {
           </div>
 
           {/* Account */}
-          <div className="space-y-4">
+          <div className="hidden sm:block space-y-4">
             <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Account</h4>
             <ul className="space-y-2.5">
               {[
@@ -141,7 +141,7 @@ export function Footer() {
           </div>
 
           {/* Contact */}
-          <div className="col-span-2 sm:col-span-1 space-y-4">
+          <div className="space-y-4">
             <h4 className="text-white font-semibold text-sm uppercase tracking-wider">Contact</h4>
             <ul className="space-y-3">
               <li className="flex items-start gap-3">
