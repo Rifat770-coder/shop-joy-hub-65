@@ -1,0 +1,8 @@
+{
+  "name": "send-whatsapp-notification",
+  "version": "1.0.0",
+  "description": "Send WhatsApp order notification to admin via Meta WhatsApp Cloud API",
+  "main": "src/main.js",
+  "type": "module",
+  "dependencies": {}
+}

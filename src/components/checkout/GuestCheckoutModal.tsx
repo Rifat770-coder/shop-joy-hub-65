@@ -245,6 +245,30 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
         console.warn('Invalid email format — skipping confirmation email:', trimmedEmail);
       }
 
+      // Send WhatsApp notification to admin (fire-and-forget, silent failure)
+      if (orderId) {
+        functions.createExecution(
+          'send-whatsapp-notification',
+          JSON.stringify({
+            orderId,
+            customerName: name,
+            total,
+            paymentMethod,
+            shippingAddress,
+            items: fallbackItems,
+          }),
+          false, '/', ExecutionMethod.POST
+        ).then((execRes) => {
+          try {
+            const result = JSON.parse(execRes.responseBody);
+            if (!result.success) console.warn('WhatsApp notification failed:', result.error);
+            else console.log('WhatsApp notification sent to admin for order:', orderId);
+          } catch { /* ignore parse error */ }
+        }).catch((waErr) => {
+          console.warn('WhatsApp notification call failed:', waErr?.message || waErr);
+        });
+      }
+
       if (orderId) navigate(`/orders/${orderId}`);
     } catch (err) {
       toast({ title: 'অর্ডার ব্যর্থ হয়েছে', description: err instanceof Error ? err.message : 'আবার চেষ্টা করুন', variant: 'destructive' });

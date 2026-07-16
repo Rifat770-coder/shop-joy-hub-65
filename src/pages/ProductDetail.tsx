@@ -21,7 +21,6 @@ import { ProductCard } from '@/components/products/ProductCard';
 import { ReviewList } from '@/components/reviews/ReviewList';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { useProduct, useProducts } from '@/hooks/useProducts';
-import { useProductSales } from '@/hooks/useProductSales';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
@@ -45,9 +44,8 @@ const ProductDetail = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { formatCurrency } = useCurrency();
 
-  const { data: product, isLoading, isFetching, isError } = useProduct(id || '');
+  const { data: product, isLoading, isFetching } = useProduct(id || '');
   const { data: allProducts = [] } = useProducts();
-  const { data: salesMap = {} } = useProductSales();
   
   const {
     reviews,
@@ -99,8 +97,13 @@ const ProductDetail = () => {
     );
   }
 
+  // TypeScript guard — product is guaranteed defined below this line
+  if (!product) return null;
+
   const galleryImages = getGalleryImages(product.image);
-  const discount = 0;
+  const discount = product.originalPrice && Number(product.originalPrice) > Number(product.price)
+    ? Math.round(((Number(product.originalPrice) - Number(product.price)) / Number(product.originalPrice)) * 100)
+    : 0;
 
   const relatedProducts = allProducts
     .filter((p) => p.category === product.category && p.id !== product.id)
@@ -339,16 +342,16 @@ const ProductDetail = () => {
                           <ul className="space-y-1.5">
                             <li className="flex justify-between">
                               <span>Inside Dhaka</span>
-                              <span className="font-medium text-success">60 BDT</span>
+                              <span className="font-medium text-success">80 BDT</span>
                             </li>
                             <li className="flex justify-between">
                               <span>Outside Dhaka</span>
                               <span className="font-medium text-success">120 BDT</span>
                             </li>
-                            <li className="flex justify-between">
+                            {/* <li className="flex justify-between">
                               <span>Cash on Delivery</span>
                               <span className="font-medium text-success">Free</span>
-                            </li>
+                            </li> */}
                           </ul>
                         </div>
                         <div>
@@ -459,7 +462,7 @@ const ProductDetail = () => {
               <h2 className="text-2xl font-bold mb-6">Related Products</h2>
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
                 {relatedProducts.map((relatedProduct) => (
-                  <ProductCard key={relatedProduct.id} product={relatedProduct as any} salesCount={salesMap[relatedProduct.id]} />
+                  <ProductCard key={relatedProduct.id} product={relatedProduct as any} />
                 ))}
               </div>
             </section>

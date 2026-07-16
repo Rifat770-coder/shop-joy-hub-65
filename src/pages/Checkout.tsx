@@ -410,6 +410,35 @@ const Checkout = () => {
         }
       }
 
+      // Send WhatsApp notification to admin (fire-and-forget, silent failure)
+      // Runs for every successful order, independent of email outcome
+      try {
+        const orderItemsForWhatsApp = items.map((item) => ({
+          product: {
+            id: item.product.id,
+            name: item.product.name,
+            price: item.product.price,
+            image: item.product.image,
+          },
+          quantity: item.quantity,
+        }));
+
+        await functions.createExecution(
+          'send-whatsapp-notification',
+          JSON.stringify({
+            orderId: data.orderId,
+            customerName: shippingForm.fullName,
+            total: data.total,
+            paymentMethod,
+            shippingAddress: shippingAddress,
+            items: orderItemsForWhatsApp,
+          })
+        );
+        console.log('WhatsApp notification sent to admin for order:', data.orderId);
+      } catch (waError) {
+        console.warn('WhatsApp notification failed:', waError instanceof Error ? waError.message : waError);
+      }
+
       setOrderId(data.orderId);
       setStep('confirmation');
       clearCart();

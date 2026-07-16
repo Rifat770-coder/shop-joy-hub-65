@@ -41,6 +41,7 @@ export const FUNCTION_IDS = {
   CREATE_ORDER: 'create-order',
   SEND_ORDER_CONFIRMATION: 'send-order-confirmation',
   VALIDATE_COUPON: 'validate-coupon',
+  SEND_WHATSAPP_NOTIFICATION: 'send-whatsapp-notification',
 } as const;
 
 // Initialize Appwrite client
