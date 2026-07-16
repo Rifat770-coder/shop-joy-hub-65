@@ -1,8 +1,7 @@
-import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 
 export default async ({ req, res, log, error }) => {
   try {
-    // Parse body safely
     let body = {};
     try {
       body = req.body ? JSON.parse(req.body) : {};
@@ -27,24 +26,16 @@ export default async ({ req, res, log, error }) => {
       return res.json({ success: false, error: 'Customer email is required' }, 400);
     }
 
-    log(`Sending order confirmation to ${customerEmail} for order ${orderId}`);
-
-    const gmailUser = process.env.GMAIL_USER;
-    const gmailPass = process.env.GMAIL_APP_PASSWORD;
-
-    if (!gmailUser || !gmailPass) {
-      error('Missing GMAIL_USER or GMAIL_APP_PASSWORD env variables');
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (!resendApiKey) {
+      error('Missing RESEND_API_KEY env variable');
       return res.json({ success: false, error: 'Email service not configured' }, 500);
     }
 
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true,
-      auth: { user: gmailUser, pass: gmailPass },
-    });
+    log(`Sending order confirmation to ${customerEmail} for order ${orderId}`);
 
-    // Build items rows
+    const resend = new Resend(resendApiKey);
+
     const itemsHtml = items.map((item) => `
       <tr>
         <td style="padding:10px 12px;border-bottom:1px solid #e5e7eb;">
@@ -107,7 +98,7 @@ export default async ({ req, res, log, error }) => {
         </a>
       </div>
       <div style="text-align:center;padding-top:20px;border-top:1px solid #e5e7eb;">
-        <p style="margin:0 0 6px;color:#6b7280;font-size:13px;">কোনো সমস্যা হলে আমাদের সাথে যোগাযোগ করুন</p>
+        <p style="margin:0 0 6px;color:#6b7280;font-size:13px;">কোনো সমস্যা হলে আমাদের সাথে যোগাযোগ করুন: realgadgetbd03@gmail.com</p>
         <p style="margin:0;color:#9ca3af;font-size:12px;">© ${new Date().getFullYear()} RealGadget BD. All rights reserved.</p>
       </div>
     </div>
@@ -115,15 +106,20 @@ export default async ({ req, res, log, error }) => {
 </body>
 </html>`;
 
-    await transporter.sendMail({
-      from: `"RealGadget BD" <${gmailUser}>`,
-      to: customerEmail,
+    const { data, error: sendError } = await resend.emails.send({
+      from: 'RealGadget BD <noreply@realgadgetbd.com>',
+      to: [customerEmail],
       subject: `✅ অর্ডার কনফার্ম - #${orderId.slice(0, 8).toUpperCase()} | RealGadget BD`,
       html: emailHtml,
     });
 
-    log(`Email sent successfully to ${customerEmail}`);
-    return res.json({ success: true, message: 'Order confirmation email sent' });
+    if (sendError) {
+      error('Resend error:', JSON.stringify(sendError));
+      return res.json({ success: false, error: sendError.message }, 500);
+    }
+
+    log(`Email sent successfully to ${customerEmail}, id: ${data?.id}`);
+    return res.json({ success: true, message: 'Order confirmation email sent', emailId: data?.id });
 
   } catch (err) {
     error('Error sending order confirmation:', err.message);
