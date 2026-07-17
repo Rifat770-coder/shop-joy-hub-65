@@ -74,9 +74,9 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <CartProvider>
-          <Toaster />
-          <Sonner />
           <BrowserRouter>
+            <Toaster />
+            <Sonner />
             <UserBehaviorTracker>
               <ScrollToTop />
               <div className="animate-fade-in">

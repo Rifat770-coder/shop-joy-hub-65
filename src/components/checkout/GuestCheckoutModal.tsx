@@ -208,9 +208,11 @@ export function GuestCheckoutModal({ open, onClose, paymentType: _paymentType, a
         }
       }
 
-      clearCart();
-      onClose();
+      // Show toast first, then navigate — avoids removeChild DOM errors
+      // caused by clearCart + onClose + navigate all firing synchronously
       toast({ title: '✅ অর্ডার সফল হয়েছে!', description: txnId ? 'পেমেন্ট যাচাই করা হবে।' : 'আমরা শীঘ্রই যোগাযোগ করবো।' });
+      onClose();
+      clearCart();
 
       // Send confirmation email
       const trimmedEmail = email.trim();
