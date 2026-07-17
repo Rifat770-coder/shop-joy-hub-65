@@ -26,6 +26,7 @@ import { useFavorites } from '@/hooks/useFavorites';
 import { useReviews } from '@/hooks/useReviews';
 import { useCurrency } from '@/hooks/useCurrency';
 import { normalizeImageUrl } from '@/lib/image-utils';
+import { slugify } from '@/lib/slug';
 
 // Build gallery from product's actual images only (pipe-separated)
 const getGalleryImages = (image: string | null | undefined): string[] => {
@@ -61,9 +62,7 @@ const ProductDetail = () => {
   // Redirect UUID URLs to slug URLs once product is loaded
   const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!isLoading && product && uuidPattern.test(id)) {
-    import('@/lib/slug').then(({ slugify }) => {
-      navigate(`/products/${slugify(product.name)}`, { replace: true });
-    });
+    navigate(`/products/${slugify(product.name)}`, { replace: true });
   }
 
   // Show loader while fetching — never show "Not Found" during load

@@ -3,6 +3,7 @@ import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/con
 import { Product as AppwriteProduct } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
 import { Query, ID } from 'appwrite';
+import { slugify } from '@/lib/slug';
 
 export type Product = AppwriteProduct & {
   id: string;
@@ -90,7 +91,6 @@ export const useProduct = (slugOrId: string) => {
       }
 
       // Slug-based: fetch all and match by slug
-      const { slugify } = await import('@/lib/slug');
       const response = await databases.listDocuments(
         DATABASE_ID,
         COLLECTIONS.PRODUCTS,
