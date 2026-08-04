@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Plus, Search, Edit, Trash2, MoreHorizontal, Loader2, PlusCircle, XCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, MoreHorizontal, Loader2 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,13 +35,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { 
-  useProducts, 
-  useAddProduct, 
-  useUpdateProduct, 
+import {
+  useProducts,
+  useAddProduct,
+  useUpdateProduct,
   useDeleteProduct,
-  Product 
+  Product
 } from '@/hooks/useProducts';
+import { ImageSourceListField } from '@/components/admin/images/ImageSourceField';
 
 // Predefined common categories — defined outside component to avoid recreation
 const DEFAULT_CATEGORIES = [
@@ -291,40 +292,11 @@ export default function AdminProducts() {
                   )}
                 </div>
                 <div className="grid gap-2">
-                  <Label>Image URLs</Label>
-                  <div className="text-xs text-muted-foreground -mt-1 space-y-0.5">
-                    <p>Use a direct image URL. Recommended free hosts:</p>
-                    <p>• <a href="https://imgbb.com" target="_blank" rel="noreferrer" className="underline text-primary">imgbb.com</a> — upload → copy "Direct link"</p>
-                    <p>• <a href="https://imgur.com" target="_blank" rel="noreferrer" className="underline text-primary">imgur.com</a> — upload → right-click image → copy image address</p>
-                  </div>
-                  {newImageUrls.map((url, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <Input
-                        value={url}
-                        onChange={(e) => {
-                          const updated = [...newImageUrls];
-                          updated[idx] = e.target.value;
-                          setNewImageUrls(updated);
-                        }}
-                        placeholder={idx === 0 ? 'https://i.ibb.co/xxx/image.jpg' : 'Additional image URL'}
-                      />
-                      {newImageUrls.length > 1 && (
-                        <button type="button" onClick={() => setNewImageUrls(newImageUrls.filter((_, i) => i !== idx))}>
-                          <XCircle className="h-5 w-5 text-destructive" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-fit gap-1"
-                    onClick={() => setNewImageUrls([...newImageUrls, ''])}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add another image
-                  </Button>
+                  <ImageSourceListField
+                    label="Image URLs"
+                    value={newImageUrls.filter(Boolean).join('|')}
+                    onChange={(joined) => setNewImageUrls(joined ? joined.split('|') : [''])}
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -458,40 +430,11 @@ export default function AdminProducts() {
                   </div>
                 </div>
                 <div className="grid gap-2">
-                  <Label>Image URLs</Label>
-                  <div className="text-xs text-muted-foreground -mt-1 space-y-0.5">
-                    <p>Use a direct image URL. Recommended free hosts:</p>
-                    <p>• <a href="https://imgbb.com" target="_blank" rel="noreferrer" className="underline text-primary">imgbb.com</a> — upload → copy "Direct link"</p>
-                    <p>• <a href="https://imgur.com" target="_blank" rel="noreferrer" className="underline text-primary">imgur.com</a> — upload → right-click image → copy image address</p>
-                  </div>
-                  {editImageUrls.map((url, idx) => (
-                    <div key={idx} className="flex gap-2 items-center">
-                      <Input
-                        value={url}
-                        onChange={(e) => {
-                          const updated = [...editImageUrls];
-                          updated[idx] = e.target.value;
-                          setEditImageUrls(updated);
-                        }}
-                        placeholder={idx === 0 ? 'https://i.ibb.co/xxx/image.jpg' : 'Additional image URL'}
-                      />
-                      {editImageUrls.length > 1 && (
-                        <button type="button" onClick={() => setEditImageUrls(editImageUrls.filter((_, i) => i !== idx))}>
-                          <XCircle className="h-5 w-5 text-destructive" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-fit gap-1"
-                    onClick={() => setEditImageUrls([...editImageUrls, ''])}
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add another image
-                  </Button>
+                  <ImageSourceListField
+                    label="Image URLs"
+                    value={editImageUrls.filter(Boolean).join('|')}
+                    onChange={(joined) => setEditImageUrls(joined ? joined.split('|') : [''])}
+                  />
                 </div>
               </div>
             )}
