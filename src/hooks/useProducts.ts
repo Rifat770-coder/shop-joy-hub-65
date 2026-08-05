@@ -4,6 +4,7 @@ import { Product as AppwriteProduct } from '@/integrations/appwrite/types';
 import { toast } from '@/hooks/use-toast';
 import { Query, ID } from 'appwrite';
 import { slugify } from '@/lib/slug';
+import { orderProductsByDisplayPosition } from '@/lib/product-order';
 
 export type Product = AppwriteProduct & {
   id: string;
@@ -19,6 +20,7 @@ export interface ProductInsert {
   category: string;
   stock?: number;
   featured?: boolean;
+  displayOrder?: number;
 }
 
 const normalizeProduct = (product: AppwriteProduct): Product => ({
@@ -36,7 +38,9 @@ export const useProducts = () => {
         COLLECTIONS.PRODUCTS,
         [Query.orderDesc('$createdAt'), Query.limit(100)]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
+      return orderProductsByDisplayPosition(
+        response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct))
+      );
     },
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
@@ -55,7 +59,9 @@ export const useFeaturedProducts = () => {
           Query.orderDesc('$createdAt')
         ]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
+      return orderProductsByDisplayPosition(
+        response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct))
+      );
     },
   });
 };
@@ -72,7 +78,9 @@ export const useProductsByCategory = (category: string) => {
           Query.orderDesc('$createdAt')
         ]
       );
-      return response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct));
+      return orderProductsByDisplayPosition(
+        response.documents.map((doc) => normalizeProduct(doc as unknown as AppwriteProduct))
+      );
     },
     enabled: !!category,
   });

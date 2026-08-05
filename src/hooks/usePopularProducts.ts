@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { databases, DATABASE_ID, COLLECTIONS } from '@/integrations/appwrite/config';
 import { Query } from 'appwrite';
 import { Product as AppwriteProduct } from '@/integrations/appwrite/types';
+import { orderProductsByDisplayPosition } from '@/lib/product-order';
 
 export type PopularProduct = AppwriteProduct & {
   id: string;
@@ -23,14 +24,14 @@ export const usePopularProducts = (limit: number = 8) => {
           [
             Query.orderDesc('rating'),
             Query.orderDesc('reviews'),
-            Query.limit(limit * 2) // Fetch more to filter and sort
+            Query.limit(100)
           ]
         );
 
         const products = response.documents as AppwriteProduct[];
 
         // Calculate popularity score and sort
-        const popularProducts = products
+        const scoredProducts = products
           .map(product => {
             // Calculate popularity score based on multiple factors
             const reviewScore = (product.reviews || 0) * 0.3; // 30% weight for review count
@@ -51,7 +52,9 @@ export const usePopularProducts = (limit: number = 8) => {
               popularityScore
             } as PopularProduct;
           })
-          .sort((a, b) => b.popularityScore - a.popularityScore)
+          .sort((a, b) => b.popularityScore - a.popularityScore);
+
+        const popularProducts = orderProductsByDisplayPosition(scoredProducts)
           .slice(0, limit);
 
         return popularProducts;

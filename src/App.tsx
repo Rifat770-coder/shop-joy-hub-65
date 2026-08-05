@@ -10,12 +10,27 @@ import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
 import { AdminRoute } from "@/components/AdminRoute";
 import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
-import { ensureValidEnvironment } from "@/lib/env-validation";
+import { ensureValidEnvironment, validateEnvironment } from "@/lib/env-validation";
 
 import { UserBehaviorTracker } from "@/components/analytics/UserBehaviorTracker";
 
-// Validate environment on app startup
-ensureValidEnvironment();
+// Keep production strict, but allow the development UI to render when a
+// developer has not created a local .env yet. The Appwrite-aware components
+// already handle the unconfigured state and explain what needs to be set.
+if (import.meta.env.PROD) {
+  ensureValidEnvironment();
+} else {
+  const environment = validateEnvironment();
+  if (!environment.isValid) {
+    console.warn(
+      'Development environment is incomplete. Some data features are disabled.',
+      {
+        missing: environment.missingVars,
+        invalid: environment.invalidVars,
+      }
+    );
+  }
+}
 
 // Only Index is eagerly loaded — everything else is lazy
 import Index from "./pages/Index";

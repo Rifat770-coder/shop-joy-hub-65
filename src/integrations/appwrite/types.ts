@@ -30,6 +30,7 @@ export interface Product extends AppwriteDocument {
   reviews: number;
   stock: number;
   featured: boolean;
+  displayOrder?: number;
 }
 
 // Order

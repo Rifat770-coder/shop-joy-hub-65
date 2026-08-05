@@ -107,6 +107,7 @@ async function main() {
           { key: 'reviews', type: 'integer', required: false, default: 0 },
           { key: 'stock', type: 'integer', required: false, default: 0 },
           { key: 'featured', type: 'boolean', required: false, default: false },
+          { key: 'displayOrder', type: 'integer', required: false },
         ],
         indexes: [
           { key: 'category', type: 'key', attributes: ['category'] },

@@ -40,7 +40,12 @@ export function normalizeImageUrl(url: string): string {
 
 /** Returns the first image URL from a pipe-separated list, normalized. */
 export function getPrimaryImage(image: string | undefined | null): string {
-  if (!image) return '/placeholder.svg';
-  const first = image.split('|')[0];
-  return normalizeImageUrl(first) || '/placeholder.svg';
+  return getProductImages(image)[0];
+}
+
+/** Returns all usable URLs from a product's pipe-separated image value. */
+export function getProductImages(image: string | undefined | null): string[] {
+  if (!image) return ['/placeholder.svg'];
+  const images = image.split('|').map(normalizeImageUrl).filter(Boolean);
+  return images.length > 0 ? images : ['/placeholder.svg'];
 }

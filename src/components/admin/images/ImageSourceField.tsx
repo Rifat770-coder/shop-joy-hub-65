@@ -130,10 +130,9 @@ interface ImageSourceListFieldProps {
 }
 
 /**
- * Multi-image variant. The first slot is a full source-aware field
- * (URL or Cloudinary upload); additional slots are URL-only — identical
- * to the current "Add another image" behavior, so nothing changes for
- * the multi-image case.
+ * Multi-image variant. Every slot supports either a direct URL or a
+ * Cloudinary upload and is serialized into the product's pipe-separated
+ * image value.
  */
 export function ImageSourceListField({
   value,
@@ -141,24 +140,36 @@ export function ImageSourceListField({
   label = 'Image URLs',
   folder,
 }: ImageSourceListFieldProps) {
-  const urls = useMemo(
-    () => (value ? value.split('|').filter(Boolean) : ['']),
-    [value]
+  // Empty slots cannot be represented by the pipe-separated value (the
+  // parent deliberately removes empty entries). Keep the editable slots
+  // locally so clicking "Add another image" can render a blank input.
+  const [urls, setUrls] = useState<string[]>(() =>
+    value ? value.split('|').filter(Boolean) : ['']
   );
+
+  useEffect(() => {
+    setUrls(value ? value.split('|').filter(Boolean) : ['']);
+  }, [value]);
+
+  const commit = (nextUrls: string[]) => {
+    setUrls(nextUrls.length ? nextUrls : ['']);
+    onChange(nextUrls.filter(Boolean).join('|'));
+  };
 
   const updateSlot = (idx: number, nextUrl: string) => {
     const updated = [...urls];
     updated[idx] = nextUrl;
-    onChange(updated.filter(Boolean).join('|'));
+    commit(updated);
   };
 
   const addSlot = () => {
-    onChange([...urls.filter(Boolean), ''].join('|'));
+    // Keep the empty slot local; the serialized value removes empty entries.
+    setUrls((current) => [...current, '']);
   };
 
   const removeSlot = (idx: number) => {
     const updated = urls.filter((_, i) => i !== idx);
-    onChange(updated.filter(Boolean).join('|'));
+    commit(updated);
   };
 
   return (
@@ -176,29 +187,30 @@ export function ImageSourceListField({
 
       {urls.map((url, idx) => (
         <div key={idx} className="grid gap-2">
-          {idx === 0 ? (
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
             <ImageSourceField
               value={url}
               onChange={(next) => updateSlot(idx, next)}
               folder={folder}
-              label={urls.length > 1 ? 'Primary image' : 'Image'}
+                label={
+                  idx === 0
+                    ? urls.length > 1 ? 'Primary image' : 'Image'
+                    : `Additional image ${idx + 1}`
+                }
             />
-          ) : (
-            <div className="flex gap-2 items-center">
-              <Input
-                value={url}
-                onChange={(e) => updateSlot(idx, e.target.value)}
-                placeholder="Additional image URL"
-              />
+            </div>
+            {idx > 0 && (
               <button
                 type="button"
                 onClick={() => removeSlot(idx)}
                 aria-label="Remove image"
+                className="mt-1 rounded-sm p-1 hover:bg-destructive/10"
               >
                 <XCircle className="h-5 w-5 text-destructive" />
               </button>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       ))}
 

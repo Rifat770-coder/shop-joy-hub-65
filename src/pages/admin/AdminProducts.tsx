@@ -50,6 +50,8 @@ const DEFAULT_CATEGORIES = [
   'Accessories', 'Gaming', 'Camera', 'TV & Audio', 'Home Appliance',
 ];
 
+const MIN_DISPLAY_POSITIONS = 100;
+
 export default function AdminProducts() {
   const { data: products = [], isLoading } = useProducts();
   const addProduct = useAddProduct();
@@ -69,6 +71,7 @@ export default function AdminProducts() {
     originalPrice: '',
     category: '',
     stock: '',
+    displayOrder: '',
   });
   const [newImageUrls, setNewImageUrls] = useState<string[]>(['']);
   const [editImageUrls, setEditImageUrls] = useState<string[]>(['']);
@@ -91,7 +94,7 @@ export default function AdminProducts() {
   }, [products, editingProduct?.category, newProduct.category]);
 
   const handleAddProduct = async () => {
-    if (!newProduct.name || !newProduct.price || !newProduct.category) {
+    if (!newProduct.name || !newProduct.price || !newProduct.category || !newProduct.displayOrder) {
       return;
     }
 
@@ -106,15 +109,22 @@ export default function AdminProducts() {
       category: newProduct.category,
       stock: parseInt(newProduct.stock) || 0,
       image: imageValue,
+      displayOrder: newProduct.displayOrder
+        ? parseInt(newProduct.displayOrder, 10)
+        : undefined,
     });
 
-    setNewProduct({ name: '', description: '', price: '', originalPrice: '', category: '', stock: '' });
+    setNewProduct({ name: '', description: '', price: '', originalPrice: '', category: '', stock: '', displayOrder: '' });
     setNewImageUrls(['']);
     setIsAddDialogOpen(false);
   };
 
   const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
+    const currentPosition = products.findIndex((item) => item.id === product.id) + 1;
+    setEditingProduct({
+      ...product,
+      displayOrder: product.displayOrder ?? Math.max(currentPosition, 1),
+    });
     const imgs = product.image ? product.image.split('|').filter(Boolean) : [''];
     setEditImageUrls(imgs.length > 0 ? imgs : ['']);
     setIsEditDialogOpen(true);
@@ -134,6 +144,7 @@ export default function AdminProducts() {
       originalPrice: editingProduct.originalPrice ?? undefined,
       category: editingProduct.category,
       stock: editingProduct.stock,
+      displayOrder: editingProduct.displayOrder,
       image: imageValue,
     });
 
@@ -167,7 +178,19 @@ export default function AdminProducts() {
             </p>
           </div>
 
-          <Dialog open={isAddDialogOpen} onOpenChange={(open) => { setIsAddDialogOpen(open); if (!open) setNewImageUrls(['']); }}>
+          <Dialog
+            open={isAddDialogOpen}
+            onOpenChange={(open) => {
+              setIsAddDialogOpen(open);
+              if (open && !newProduct.displayOrder) {
+                setNewProduct((current) => ({
+                  ...current,
+                  displayOrder: String(products.length + 1),
+                }));
+              }
+              if (!open) setNewImageUrls(['']);
+            }}
+          >
             <DialogTrigger asChild>
               <Button className="gap-2">
                 <Plus className="h-4 w-4" />
@@ -239,6 +262,31 @@ export default function AdminProducts() {
                       }
                       placeholder="0"
                     />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="display-position">Display Position *</Label>
+                    <Select
+                      value={newProduct.displayOrder}
+                      onValueChange={(value) =>
+                        setNewProduct({ ...newProduct, displayOrder: value })
+                      }
+                    >
+                      <SelectTrigger id="display-position">
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({
+                          length: Math.max(products.length + 1, MIN_DISPLAY_POSITIONS),
+                        }, (_, index) => index + 1).map((position) => (
+                          <SelectItem key={position} value={String(position)}>
+                            {position}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      1 appears first; larger numbers appear later.
+                    </p>
                   </div>
                 </div>
                 <div className="grid gap-2">
@@ -380,6 +428,34 @@ export default function AdminProducts() {
                       }
                       placeholder="0"
                     />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="edit-display-position">Display Position *</Label>
+                    <Select
+                      value={String(editingProduct.displayOrder ?? '')}
+                      onValueChange={(value) =>
+                        setEditingProduct({
+                          ...editingProduct,
+                          displayOrder: parseInt(value, 10),
+                        })
+                      }
+                    >
+                      <SelectTrigger id="edit-display-position">
+                        <SelectValue placeholder="Select position" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({
+                          length: Math.max(products.length, MIN_DISPLAY_POSITIONS),
+                        }, (_, index) => index + 1).map((position) => (
+                          <SelectItem key={position} value={String(position)}>
+                            {position}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      1 appears first; larger numbers appear later.
+                    </p>
                   </div>
                 </div>
                 <div className="grid gap-2">

@@ -1,11 +1,12 @@
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Star, Heart, ShoppingCart, Zap, ShoppingBag } from 'lucide-react';
+import { Star, Heart, ShoppingCart, Zap, ShoppingBag, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Product } from '@/types';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/context/CartContext';
 import { useFavorites } from '@/hooks/useFavorites';
 import { useCurrency } from '@/hooks/useCurrency';
-import { getPrimaryImage } from '@/lib/image-utils';
+import { getProductImages } from '@/lib/image-utils';
 import { productSlug } from '@/lib/slug';
 
 interface ProductCardProps {
@@ -18,6 +19,9 @@ export function ProductCard({ product, salesCount }: ProductCardProps) {
   const { toggleFavorite, isFavorite } = useFavorites();
   const { formatCurrency } = useCurrency();
   const navigate = useNavigate();
+  const productImages = getProductImages(product.image);
+  const [imageIndex, setImageIndex] = useState(0);
+  const visibleImageIndex = imageIndex % productImages.length;
 
   const discount = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -36,13 +40,54 @@ export function ProductCard({ product, salesCount }: ProductCardProps) {
       <div className="relative aspect-square overflow-hidden bg-muted">
         <Link to={`/products/${productSlug(product.name, product.id)}`}>
           <img
-            src={getPrimaryImage(product.image)}
+            src={productImages[visibleImageIndex]}
             alt={product.name}
             loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
           />
         </Link>
+
+        {productImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              aria-label="Previous product image"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setImageIndex((current) =>
+                  current === 0 ? productImages.length - 1 : current - 1
+                );
+              }}
+              className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-1 text-slate-700 opacity-0 shadow transition-opacity hover:bg-white group-hover:opacity-100"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="Next product image"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                setImageIndex((current) => (current + 1) % productImages.length);
+              }}
+              className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/90 p-1 text-slate-700 opacity-0 shadow transition-opacity hover:bg-white group-hover:opacity-100"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            <div className="absolute bottom-2 left-1/2 z-10 flex -translate-x-1/2 gap-1 rounded-full bg-black/35 px-2 py-1">
+              {productImages.map((_, index) => (
+                <span
+                  key={index}
+                  className={`h-1.5 w-1.5 rounded-full ${
+                    index === visibleImageIndex ? 'bg-white' : 'bg-white/45'
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         {/* Discount badge — top right, green, like image */}
         {discount > 0 && (

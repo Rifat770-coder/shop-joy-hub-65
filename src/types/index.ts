@@ -10,6 +10,7 @@ export interface Product {
   reviews: number;
   stock: number;
   featured?: boolean;
+  displayOrder?: number;
   created_at?: string;
   updated_at?: string;
   // Legacy field for compatibility
