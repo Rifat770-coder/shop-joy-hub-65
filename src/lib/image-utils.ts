@@ -1,31 +1,48 @@
 /**
- * Normalizes any Google Drive URL to lh3.googleusercontent.com which is
- * the only reliably embeddable format for Drive images in browsers.
+ * Normalizes image URLs.
+ * - Converts Google Drive URLs to embeddable format
+ * - Rewrites internal Appwrite Storage URLs (172.x.x.x) to public Appwrite Cloud URLs
  */
 export function normalizeImageUrl(url: string): string {
   if (!url) return '';
   const trimmed = url.trim();
 
+  // Rewrite internal Appwrite Storage URLs to public Appwrite Cloud URLs
+  // Pattern: http://172.172.160.120/v1/storage/buckets/{bucketId}/files/{fileId}/...
+  const appwriteInternalPattern = /https?:\/\/172\.\d+\.\d+\.\d+\/v1\/storage\/buckets\/([^/]+)\/files\/([^/?]+)/;
+  const internalMatch = trimmed.match(appwriteInternalPattern);
+  if (internalMatch) {
+    const bucketId = internalMatch[1];
+    const fileId = internalMatch[2];
+    const projectId = '6952e922001783db4a09';
+    return `https://cloud.appwrite.io/v1/storage/buckets/${bucketId}/files/${fileId}/view?project=${projectId}`;
+  }
+
+  // Block other private/localhost URLs
+  if (
+    trimmed.match(/^https?:\/\/192\.168\./) ||
+    trimmed.match(/^https?:\/\/10\./) ||
+    trimmed.match(/^https?:\/\/localhost/)
+  ) {
+    return '/placeholder.svg';
+  }
+
   // Extract file ID from any known Drive URL format
   let fileId = '';
 
-  // /file/d/ID/view  or  /file/d/ID
   const fileMatch = trimmed.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
   if (fileMatch) fileId = fileMatch[1];
 
-  // open?id=ID
   if (!fileId) {
     const openMatch = trimmed.match(/drive\.google\.com\/open\?[^"]*[?&]id=([^&]+)/);
     if (openMatch) fileId = openMatch[1];
   }
 
-  // uc?export=view&id=ID  or  uc?id=ID
   if (!fileId) {
     const ucMatch = trimmed.match(/drive\.google\.com\/uc\?[^"]*[?&]id=([^&]+)/);
     if (ucMatch) fileId = ucMatch[1];
   }
 
-  // thumbnail?id=ID
   if (!fileId) {
     const thumbMatch = trimmed.match(/drive\.google\.com\/thumbnail\?[^"]*[?&]id=([^&]+)/);
     if (thumbMatch) fileId = thumbMatch[1];
